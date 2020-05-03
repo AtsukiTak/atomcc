@@ -1,0 +1,10 @@
+[package]
+name = "atomc"
+version = "0.1.0"
+authors = ["AtsukiTak <takatomgoo@gmail.com>"]
+edition = "2018"
+description = "C compiler for atom project (personal hobby project)"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
