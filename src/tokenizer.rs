@@ -18,11 +18,11 @@ pub enum Op {
 pub struct TokenIter<'a> {
     s: &'a str,
     // 現在の文字が全体の何文字目か
-    n_bytes: usize,
+    pos: usize,
 }
 
 pub fn tokenize<'a>(s: &'a str) -> TokenIter<'a> {
-    TokenIter { s, n_bytes: 0 }
+    TokenIter { s, pos: 0 }
 }
 
 impl Token {
@@ -66,19 +66,19 @@ impl<'a> Iterator for TokenIter<'a> {
 
         if self.s.as_bytes()[0] == b'+' {
             self.update_s(self.s.split_at(1).1);
-            return Some(Token::new_op(Op::Plus, self.n_bytes));
+            return Some(Token::new_op(Op::Plus, self.pos));
         }
 
         if self.s.as_bytes()[0] == b'-' {
             self.update_s(self.s.split_at(1).1);
-            return Some(Token::new_op(Op::Minus, self.n_bytes));
+            return Some(Token::new_op(Op::Minus, self.pos));
         }
 
         let (digit_s, remain_s) = split_digit(self.s);
         if !digit_s.is_empty() {
             self.update_s(remain_s);
             let digit = usize::from_str_radix(digit_s, 10).unwrap();
-            return Some(Token::new_num(digit, self.n_bytes));
+            return Some(Token::new_num(digit, self.pos));
         }
 
         panic!("Invalid token stream")
@@ -87,7 +87,7 @@ impl<'a> Iterator for TokenIter<'a> {
 
 impl<'a> TokenIter<'a> {
     fn update_s(&mut self, new_s: &'a str) {
-        self.n_bytes += self.s.len() - new_s.len();
+        self.pos += self.s.len() - new_s.len();
         self.s = new_s;
     }
 }
