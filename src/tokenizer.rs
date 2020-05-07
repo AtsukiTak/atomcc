@@ -1,8 +1,18 @@
-#[derive(Debug)]
-pub enum Token {
+pub struct Token {
+    kind: TokenKind,
+    pos: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TokenKind {
+    Op(Op),
+    Num(usize),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Op {
     Plus,
     Minus,
-    Num(usize),
 }
 
 pub struct TokenIter<'a> {
@@ -16,9 +26,30 @@ pub fn tokenize<'a>(s: &'a str) -> TokenIter<'a> {
 }
 
 impl Token {
+    fn new_num(n: usize, pos: usize) -> Token {
+        Token {
+            kind: TokenKind::Num(n),
+            pos,
+        }
+    }
+
+    fn new_op(op: Op, pos: usize) -> Token {
+        Token {
+            kind: TokenKind::Op(op),
+            pos,
+        }
+    }
+
+    pub fn expect_op(&self) -> Op {
+        match self.kind {
+            TokenKind::Op(op) => op,
+            t => panic!("Expect operator but found {:?}", t),
+        }
+    }
+
     pub fn expect_num(&self) -> usize {
-        match self {
-            Token::Num(n) => *n,
+        match self.kind {
+            TokenKind::Num(n) => n,
             t => panic!("Expect number but found {:?}", t),
         }
     }
@@ -35,18 +66,19 @@ impl<'a> Iterator for TokenIter<'a> {
 
         if self.s.as_bytes()[0] == b'+' {
             self.update_s(self.s.split_at(1).1);
-            return Some(Token::Plus);
+            return Some(Token::new_op(Op::Plus, self.n_bytes));
         }
 
         if self.s.as_bytes()[0] == b'-' {
             self.update_s(self.s.split_at(1).1);
-            return Some(Token::Minus);
+            return Some(Token::new_op(Op::Minus, self.n_bytes));
         }
 
         let (digit_s, remain_s) = split_digit(self.s);
         if !digit_s.is_empty() {
             self.update_s(remain_s);
-            return Some(Token::Num(usize::from_str_radix(digit_s, 10).unwrap()));
+            let digit = usize::from_str_radix(digit_s, 10).unwrap();
+            return Some(Token::new_num(digit, self.n_bytes));
         }
 
         panic!("Invalid token stream")

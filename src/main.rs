@@ -1,6 +1,6 @@
 pub mod tokenizer;
 
-use tokenizer::{tokenize, Token};
+use tokenizer::{tokenize, Op};
 
 fn main() {
     let arg = std::env::args().nth(1).unwrap();
@@ -14,10 +14,9 @@ fn main() {
 
     while let Some(token) = token_iter.next() {
         let n = token_iter.next().unwrap().expect_num();
-        match token {
-            Token::Plus => println!("  add rax, {}", n),
-            Token::Minus => println!("  sub rax, {}", n),
-            _ => panic!("Unexpected Operator"),
+        match token.expect_op() {
+            Op::Plus => println!("  add rax, {}", n),
+            Op::Minus => println!("  sub rax, {}", n),
         }
     }
 
