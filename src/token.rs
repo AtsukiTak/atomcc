@@ -67,6 +67,14 @@ impl<'a> Token<'a> {
             _ => exit_with_err_msg(self.origin, self.pos, "not a number"),
         }
     }
+
+    pub fn is_num(&self) -> bool {
+        matches!(self.kind, TokenKind::Num(_))
+    }
+
+    pub fn is_par(&self) -> bool {
+        matches!(self.kind, TokenKind::Par(_))
+    }
 }
 
 impl<'a> Iterator for TokenIter<'a> {
