@@ -57,21 +57,21 @@ impl<'a> Token<'a> {
     pub fn expect_op(&self) -> Op {
         match self.kind {
             TokenKind::Op(op) => op,
-            _ => exit_with_err_msg(self.origin, self.pos, "not an operator"),
+            _ => self.exit_with_err_msg("not an operator"),
         }
     }
 
     pub fn expect_par(&self) -> Par {
         match self.kind {
             TokenKind::Par(par) => par,
-            _ => exit_with_err_msg(self.origin, self.pos, "not a parentheses"),
+            _ => self.exit_with_err_msg("not a parentheses"),
         }
     }
 
     pub fn expect_num(&self) -> usize {
         match self.kind {
             TokenKind::Num(n) => n,
-            _ => exit_with_err_msg(self.origin, self.pos, "not a number"),
+            _ => self.exit_with_err_msg("not a number"),
         }
     }
 
@@ -81,6 +81,10 @@ impl<'a> Token<'a> {
 
     pub fn is_par(&self) -> bool {
         matches!(self.kind, TokenKind::Par(_))
+    }
+
+    pub fn exit_with_err_msg(&self, msg: &'static str) -> ! {
+        exit_with_err_msg(self.origin, self.pos, msg)
     }
 }
 
@@ -134,7 +138,7 @@ fn split_digit(s: &str) -> (&str, &str) {
 /// Print error messages such as
 /// "1 + 3 ++"
 /// "       ^ not number"
-fn exit_with_err_msg(origin: &str, pos: usize, msg: &str) -> ! {
+pub fn exit_with_err_msg(origin: &str, pos: usize, msg: &str) -> ! {
     eprintln!("{}", origin);
     let leading_spaces = " ".repeat(pos);
     eprintln!("{}^ {}", leading_spaces, msg);
