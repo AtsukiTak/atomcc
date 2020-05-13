@@ -1,3 +1,4 @@
+pub mod ast;
 pub mod token;
 
 use token::{tokenize, Op};
