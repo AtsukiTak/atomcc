@@ -7,6 +7,7 @@ pub struct Token<'a> {
 #[derive(Debug, Clone, Copy)]
 pub enum TokenKind {
     Op(Op),
+    Par(Par),
     Num(usize),
 }
 
@@ -16,6 +17,13 @@ pub enum Op {
     Sub,
     Mul,
     Div,
+}
+
+/// Parentheses
+#[derive(Debug, Clone, Copy)]
+pub enum Par {
+    Left,
+    Right,
 }
 
 pub struct TokenIter<'a> {
@@ -34,17 +42,13 @@ pub fn tokenize<'a>(s: &'a str) -> TokenIter<'a> {
 }
 
 impl<'a> Token<'a> {
+    fn new(kind: TokenKind, origin: &'a str, pos: usize) -> Token {
+        Token { kind, origin, pos }
+    }
+
     fn new_num(n: usize, origin: &'a str, pos: usize) -> Token {
         Token {
             kind: TokenKind::Num(n),
-            origin,
-            pos,
-        }
-    }
-
-    fn new_op(op: Op, origin: &'a str, pos: usize) -> Token {
-        Token {
-            kind: TokenKind::Op(op),
             origin,
             pos,
         }
@@ -74,14 +78,16 @@ impl<'a> Iterator for TokenIter<'a> {
             return None;
         }
 
-        if let Some(op) = match self.s.as_bytes()[0] {
-            b'+' => Some(Op::Add),
-            b'-' => Some(Op::Sub),
-            b'*' => Some(Op::Mul),
-            b'/' => Some(Op::Div),
+        if let Some(kind) = match self.s.as_bytes()[0] {
+            b'+' => Some(TokenKind::Op(Op::Add)),
+            b'-' => Some(TokenKind::Op(Op::Sub)),
+            b'*' => Some(TokenKind::Op(Op::Mul)),
+            b'/' => Some(TokenKind::Op(Op::Div)),
+            b'(' => Some(TokenKind::Par(Par::Left)),
+            b')' => Some(TokenKind::Par(Par::Right)),
             _ => None,
         } {
-            let token = Token::new_op(op, self.origin, self.pos);
+            let token = Token::new(kind, self.origin, self.pos);
             self.update_s(self.s.split_at(1).1);
             return Some(token);
         }
