@@ -15,8 +15,9 @@ fn main() {
     while let Some(token) = token_iter.next() {
         let n = token_iter.next().unwrap().expect_num();
         match token.expect_op() {
-            Op::Plus => println!("  add rax, {}", n),
-            Op::Minus => println!("  sub rax, {}", n),
+            Op::Add => println!("  add rax, {}", n),
+            Op::Sub => println!("  sub rax, {}", n),
+            _ => panic!("unsupported"),
         }
     }
 

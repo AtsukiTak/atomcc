@@ -12,8 +12,10 @@ pub enum TokenKind {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Op {
-    Plus,
-    Minus,
+    Add,
+    Sub,
+    Mul,
+    Div,
 }
 
 pub struct TokenIter<'a> {
@@ -72,14 +74,14 @@ impl<'a> Iterator for TokenIter<'a> {
             return None;
         }
 
-        if self.s.as_bytes()[0] == b'+' {
-            let token = Token::new_op(Op::Plus, self.origin, self.pos);
-            self.update_s(self.s.split_at(1).1);
-            return Some(token);
-        }
-
-        if self.s.as_bytes()[0] == b'-' {
-            let token = Token::new_op(Op::Minus, self.origin, self.pos);
+        if let Some(op) = match self.s.as_bytes()[0] {
+            b'+' => Some(Op::Add),
+            b'-' => Some(Op::Sub),
+            b'*' => Some(Op::Mul),
+            b'/' => Some(Op::Div),
+            _ => None,
+        } {
+            let token = Token::new_op(op, self.origin, self.pos);
             self.update_s(self.s.split_at(1).1);
             return Some(token);
         }
