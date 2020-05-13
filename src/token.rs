@@ -88,6 +88,12 @@ impl<'a> Token<'a> {
     }
 }
 
+impl<'a> TokenIter<'a> {
+    pub fn exit_with_err_msg(&self, msg: &'static str) -> ! {
+        exit_with_err_msg(self.origin, self.pos, msg)
+    }
+}
+
 impl<'a> Iterator for TokenIter<'a> {
     type Item = Token<'a>;
 
