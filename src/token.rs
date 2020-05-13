@@ -61,6 +61,13 @@ impl<'a> Token<'a> {
         }
     }
 
+    pub fn expect_par(&self) -> Par {
+        match self.kind {
+            TokenKind::Par(par) => par,
+            _ => exit_with_err_msg(self.origin, self.pos, "not a parentheses"),
+        }
+    }
+
     pub fn expect_num(&self) -> usize {
         match self.kind {
             TokenKind::Num(n) => n,
