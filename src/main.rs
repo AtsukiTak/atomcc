@@ -1,6 +1,6 @@
-pub mod tokenizer;
+pub mod token;
 
-use tokenizer::{tokenize, Op};
+use token::{tokenize, Op};
 
 fn main() {
     let arg = std::env::args().nth(1).unwrap();
