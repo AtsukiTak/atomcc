@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, Copy)]
 pub struct Token<'a> {
     kind: TokenKind,
     origin: &'a str,
@@ -54,33 +55,40 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn expect_op(&self) -> Op {
+    pub fn op(&self) -> Option<Op> {
         match self.kind {
-            TokenKind::Op(op) => op,
-            _ => self.exit_with_err_msg("not an operator"),
+            TokenKind::Op(op) => Some(op),
+            _ => None,
+        }
+    }
+
+    pub fn expect_op(&self) -> Op {
+        self.op()
+            .unwrap_or_else(|| self.exit_with_err_msg("not an operator"))
+    }
+
+    pub fn par(&self) -> Option<Par> {
+        match self.kind {
+            TokenKind::Par(par) => Some(par),
+            _ => None,
         }
     }
 
     pub fn expect_par(&self) -> Par {
+        self.par()
+            .unwrap_or_else(|| self.exit_with_err_msg("not a parentheses"))
+    }
+
+    pub fn num(&self) -> Option<usize> {
         match self.kind {
-            TokenKind::Par(par) => par,
-            _ => self.exit_with_err_msg("not a parentheses"),
+            TokenKind::Num(n) => Some(n),
+            _ => None,
         }
     }
 
     pub fn expect_num(&self) -> usize {
-        match self.kind {
-            TokenKind::Num(n) => n,
-            _ => self.exit_with_err_msg("not a number"),
-        }
-    }
-
-    pub fn is_num(&self) -> bool {
-        matches!(self.kind, TokenKind::Num(_))
-    }
-
-    pub fn is_par(&self) -> bool {
-        matches!(self.kind, TokenKind::Par(_))
+        self.num()
+            .unwrap_or_else(|| self.exit_with_err_msg("not a number"))
     }
 
     pub fn exit_with_err_msg(&self, msg: &'static str) -> ! {
