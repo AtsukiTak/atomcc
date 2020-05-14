@@ -89,21 +89,17 @@ impl<'a> Token<'a> {
 }
 
 impl<'a> TokenIter<'a> {
-    pub fn exit_with_err_msg(&self, msg: &'static str) -> ! {
-        exit_with_err_msg(self.origin, self.pos, msg)
+    pub fn peek(&self) -> Option<Token<'a>> {
+        self.parse_inner().map(|(token, _)| token)
     }
-}
 
-impl<'a> Iterator for TokenIter<'a> {
-    type Item = Token<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.update_s(self.s.trim_start());
-        if self.s.is_empty() {
+    fn parse_inner(&self) -> Option<(Token<'a>, &'a str)> {
+        let s = self.s.trim_start();
+        if s.is_empty() {
             return None;
         }
 
-        if let Some(kind) = match self.s.as_bytes()[0] {
+        if let Some(kind) = match s.as_bytes()[0] {
             b'+' => Some(TokenKind::Op(Op::Add)),
             b'-' => Some(TokenKind::Op(Op::Sub)),
             b'*' => Some(TokenKind::Op(Op::Mul)),
@@ -113,26 +109,40 @@ impl<'a> Iterator for TokenIter<'a> {
             _ => None,
         } {
             let token = Token::new(kind, self.origin, self.pos);
-            self.update_s(self.s.split_at(1).1);
-            return Some(token);
+            return Some((token, s.split_at(1).1));
         }
 
-        let (digit_s, remain_s) = split_digit(self.s);
+        let (digit_s, remain_s) = split_digit(s);
         if !digit_s.is_empty() {
             let digit = usize::from_str_radix(digit_s, 10).unwrap();
             let token = Token::new_num(digit, self.origin, self.pos);
-            self.update_s(remain_s);
-            return Some(token);
+            return Some((token, remain_s));
         }
 
-        exit_with_err_msg(self.origin, self.pos, "Unable to tokenize")
+        self.exit_with_err_msg("Unable to tokenize")
+    }
+
+    fn update_s(&mut self, next_s: &'a str) {
+        self.pos += self.s.len() - next_s.len();
+        self.s = next_s;
+    }
+
+    pub fn exit_with_err_msg(&self, msg: &'static str) -> ! {
+        exit_with_err_msg(self.origin, self.pos, msg)
     }
 }
 
-impl<'a> TokenIter<'a> {
-    fn update_s(&mut self, new_s: &'a str) {
-        self.pos += self.s.len() - new_s.len();
-        self.s = new_s;
+impl<'a> Iterator for TokenIter<'a> {
+    type Item = Token<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.parse_inner() {
+            None => None,
+            Some((token, next_s)) => {
+                self.update_s(next_s);
+                Some(token)
+            }
+        }
     }
 }
 
