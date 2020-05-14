@@ -1,26 +1,19 @@
 pub mod ast;
+pub mod generator;
 pub mod token;
-
-use token::{tokenize, Op};
 
 fn main() {
     let arg = std::env::args().nth(1).unwrap();
-    let mut token_iter = tokenize(arg.as_str());
+
+    let mut token_iter = token::tokenize(arg.as_str());
+    let ast = ast::expr(&mut token_iter);
 
     println!(".intel_syntax noprefix");
     println!(".global _main");
     println!("_main:");
 
-    println!("  mov rax, {}", token_iter.next().unwrap().expect_num());
+    generator::gen(&ast);
 
-    while let Some(token) = token_iter.next() {
-        let n = token_iter.next().unwrap().expect_num();
-        match token.expect_op() {
-            Op::Add => println!("  add rax, {}", n),
-            Op::Sub => println!("  sub rax, {}", n),
-            _ => panic!("unsupported"),
-        }
-    }
-
+    println!("  pop rax");
     println!("  ret");
 }
