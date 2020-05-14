@@ -1,9 +1,13 @@
 use crate::token::{Op, Par, TokenIter, TokenKind};
 
 pub struct Node {
-    kind: TokenKind,
-    lhs: Option<Box<Node>>,
-    rhs: Option<Box<Node>>,
+    pub kind: TokenKind,
+    pub branch: Option<NodeBranch>,
+}
+
+pub struct NodeBranch {
+    pub lhs: Box<Node>,
+    pub rhs: Box<Node>,
 }
 
 impl Node {
@@ -11,8 +15,7 @@ impl Node {
     pub fn new_num(i: usize) -> Node {
         Node {
             kind: TokenKind::Num(i),
-            lhs: None,
-            rhs: None,
+            branch: None,
         }
     }
 
@@ -20,8 +23,10 @@ impl Node {
     pub fn new_op(op: Op, lhs: Node, rhs: Node) -> Node {
         Node {
             kind: TokenKind::Op(op),
-            lhs: Some(Box::new(lhs)),
-            rhs: Some(Box::new(rhs)),
+            branch: Some(NodeBranch {
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            }),
         }
     }
 }
