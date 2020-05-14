@@ -34,12 +34,16 @@ impl Node {
 /// で表現される非終端記号exprをパースする関数。
 pub fn expr(tokens: &mut TokenIter) -> Node {
     let mut node = mul(tokens);
-    while let Some(token) = tokens.next() {
-        match token.expect_op() {
-            op @ Op::Add => node = Node::new_op(op, node, mul(tokens)),
-            op @ Op::Sub => node = Node::new_op(op, node, mul(tokens)),
-            _ => token.exit_with_err_msg("expect \"+\" or \"-\""),
-        }
+    while let Some(token) = tokens.peek() {
+        let op = match token.op() {
+            Some(op @ Op::Add) => op,
+            Some(op @ Op::Sub) => op,
+            _ => break,
+        };
+
+        // このルートに入ることが確定したのでイテレータを進める
+        let _ = tokens.next();
+        node = Node::new_op(op, node, mul(tokens));
     }
     node
 }
@@ -49,12 +53,16 @@ pub fn expr(tokens: &mut TokenIter) -> Node {
 /// で表現される非終端記号mulをパースする関数。
 pub fn mul(tokens: &mut TokenIter) -> Node {
     let mut node = primary(tokens);
-    while let Some(token) = tokens.next() {
-        match token.expect_op() {
-            op @ Op::Mul => node = Node::new_op(op, node, primary(tokens)),
-            op @ Op::Div => node = Node::new_op(op, node, primary(tokens)),
-            _ => token.exit_with_err_msg("expect \"*\" or \"/\""),
-        }
+    while let Some(token) = tokens.peek() {
+        let op = match token.op() {
+            Some(op @ Op::Mul) => op,
+            Some(op @ Op::Div) => op,
+            _ => break,
+        };
+
+        // このルートに入ることが確定したのでイテレータを進める
+        let _ = tokens.next();
+        node = Node::new_op(op, node, primary(tokens));
     }
     node
 }
@@ -67,8 +75,8 @@ pub fn primary(tokens: &mut TokenIter) -> Node {
         tokens.exit_with_err_msg("Unexpected EOF. number, \"(\" or \")\" is expected")
     });
 
-    if token.is_num() {
-        Node::new_num(token.expect_num())
+    if let Some(n) = token.num() {
+        Node::new_num(n)
     } else {
         if !matches!(token.expect_par(), Par::Left) {
             token.exit_with_err_msg("expect \"(\" instead of \")\"");
