@@ -1,11 +1,14 @@
-use crate::token::{Op, Par, TokenIter, TokenKind};
+use crate::token::{Op, Par, TokenIter};
 
-pub struct Node {
-    pub kind: TokenKind,
-    pub branch: Option<NodeBranch>,
+pub enum Node {
+    /// 末端Node
+    Num(usize),
+    /// 非末端Node
+    Op(OpNode),
 }
 
-pub struct NodeBranch {
+pub struct OpNode {
+    pub kind: Op,
     pub lhs: Box<Node>,
     pub rhs: Box<Node>,
 }
@@ -13,21 +16,16 @@ pub struct NodeBranch {
 impl Node {
     /// 数値を表すNodeを作成する。
     pub fn new_num(i: usize) -> Node {
-        Node {
-            kind: TokenKind::Num(i),
-            branch: None,
-        }
+        Node::Num(i)
     }
 
     /// 左辺と右辺を受け取る２項演算子を表すNodeを作成する
     pub fn new_op(op: Op, lhs: Node, rhs: Node) -> Node {
-        Node {
-            kind: TokenKind::Op(op),
-            branch: Some(NodeBranch {
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
-            }),
-        }
+        Node::Op(OpNode {
+            kind: op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        })
     }
 }
 
