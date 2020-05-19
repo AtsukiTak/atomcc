@@ -14,10 +14,19 @@ pub enum TokenKind {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Op {
-    Add,
-    Sub,
-    Mul,
-    Div,
+    // 算術演算子
+    Add, // +
+    Sub, // -
+    Mul, // *
+    Div, // /
+
+    // 比較演算子
+    Lt,  // <
+    Lte, // <=
+    Gt,  // >
+    Gte, // >=
+    Eq,  // ==
+    Neq, // !=
 }
 
 /// Parentheses
@@ -107,11 +116,26 @@ impl<'a> TokenIter<'a> {
             return None;
         }
 
+        // 2文字の演算子を調べる
+        if let Some(kind) = match &s[0..1] {
+            "<=" => Some(TokenKind::Op(Op::Lte)),
+            ">=" => Some(TokenKind::Op(Op::Gte)),
+            "==" => Some(TokenKind::Op(Op::Eq)),
+            "!=" => Some(TokenKind::Op(Op::Neq)),
+            _ => None,
+        } {
+            let token = Token::new(kind, self.origin, self.pos);
+            return Some((token, s.split_at(1).1));
+        }
+
+        // 1文字のトークンを調べる
         if let Some(kind) = match s.as_bytes()[0] {
             b'+' => Some(TokenKind::Op(Op::Add)),
             b'-' => Some(TokenKind::Op(Op::Sub)),
             b'*' => Some(TokenKind::Op(Op::Mul)),
             b'/' => Some(TokenKind::Op(Op::Div)),
+            b'<' => Some(TokenKind::Op(Op::Lt)),
+            b'>' => Some(TokenKind::Op(Op::Gt)),
             b'(' => Some(TokenKind::Par(Par::Left)),
             b')' => Some(TokenKind::Par(Par::Right)),
             _ => None,

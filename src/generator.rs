@@ -21,6 +21,7 @@ pub fn gen(node: &Node) {
                     println!("  cqo");
                     println!("  idiv rdi");
                 }
+                _ => unreachable!(),
             }
 
             println!("  push rax");
