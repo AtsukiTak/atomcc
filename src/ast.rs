@@ -48,11 +48,11 @@ pub fn expr(tokens: &mut TokenIter) -> Node {
     node
 }
 
-/// > mul = primary ("*" primary | "/" primary)*
+/// > mul = unary ("*" unary | "/" unary)*
 ///
 /// で表現される非終端記号mulをパースする関数。
 pub fn mul(tokens: &mut TokenIter) -> Node {
-    let mut node = primary(tokens);
+    let mut node = unary(tokens);
     while let Some(token) = tokens.peek() {
         let op = match token.op() {
             Some(op @ Op::Mul) => op,
@@ -62,9 +62,26 @@ pub fn mul(tokens: &mut TokenIter) -> Node {
 
         // このルートに入ることが確定したのでイテレータを進める
         let _ = tokens.next();
-        node = Node::new_op(op, node, primary(tokens));
+        node = Node::new_op(op, node, unary(tokens));
     }
     node
+}
+
+/// > unary = ("+" | "-")? primary
+///
+/// で表現される非終端記号unaryをパースする関数。
+pub fn unary(tokens: &mut TokenIter) -> Node {
+    match tokens.peek().and_then(|token| token.op()) {
+        Some(Op::Add) => {
+            let _ = tokens.next();
+            Node::new_op(Op::Add, Node::new_num(0), primary(tokens))
+        }
+        Some(Op::Sub) => {
+            let _ = tokens.next();
+            Node::new_op(Op::Sub, Node::new_num(0), primary(tokens))
+        }
+        _ => primary(tokens),
+    }
 }
 
 /// > primary = num | "(" expr ")"
