@@ -33,6 +33,55 @@ impl Node {
 ///
 /// で表現される非終端記号exprをパースする関数。
 pub fn expr(tokens: &mut TokenIter) -> Node {
+    equality(tokens)
+}
+
+/// > equality = relational ("==" relational | "!=" relational)*
+///
+/// で表現される非終端義号equalityをパースする関数
+pub fn equality(tokens: &mut TokenIter) -> Node {
+    let mut node = relational(tokens);
+    while let Some(token) = tokens.peek() {
+        let op = match token.op() {
+            Some(op @ Op::Eq) => op,
+            Some(op @ Op::Neq) => op,
+            _ => break,
+        };
+
+        // このルートに入ることが確定したのでイテレータを進める
+        let _ = tokens.next();
+        let rhs = relational(tokens);
+        node = Node::new_op(op, node, rhs);
+    }
+    node
+}
+
+/// > add = ("<" add | "<=" add | ">" add | ">=" add)*
+///
+/// で表現される非終端記号relationalをパースする関数
+pub fn relational(tokens: &mut TokenIter) -> Node {
+    let mut node = add(tokens);
+    while let Some(token) = tokens.peek() {
+        let op = match token.op() {
+            Some(op @ Op::Lt) => op,
+            Some(op @ Op::Lte) => op,
+            Some(op @ Op::Gt) => op,
+            Some(op @ Op::Gte) => op,
+            _ => break,
+        };
+
+        // このルートに入ることが確定したのでイテレータを進める
+        let _ = tokens.next();
+        let rhs = add(tokens);
+        node = Node::new_op(op, node, rhs);
+    }
+    node
+}
+
+/// > add = mul ("+" mul | "-" mul)*
+///
+/// で表される非終端記号addをパースする関数
+pub fn add(tokens: &mut TokenIter) -> Node {
     let mut node = mul(tokens);
     while let Some(token) = tokens.peek() {
         let op = match token.op() {
@@ -43,7 +92,8 @@ pub fn expr(tokens: &mut TokenIter) -> Node {
 
         // このルートに入ることが確定したのでイテレータを進める
         let _ = tokens.next();
-        node = Node::new_op(op, node, mul(tokens));
+        let rhs = mul(tokens);
+        node = Node::new_op(op, node, rhs);
     }
     node
 }
