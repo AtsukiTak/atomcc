@@ -117,31 +117,35 @@ impl<'a> TokenIter<'a> {
         }
 
         // 2文字の演算子を調べる
-        if let Some(kind) = match &s[0..1] {
-            "<=" => Some(TokenKind::Op(Op::Lte)),
-            ">=" => Some(TokenKind::Op(Op::Gte)),
-            "==" => Some(TokenKind::Op(Op::Eq)),
-            "!=" => Some(TokenKind::Op(Op::Neq)),
-            _ => None,
-        } {
-            let token = Token::new(kind, self.origin, self.pos);
-            return Some((token, s.split_at(1).1));
+        if s.len() >= 2 {
+            let (token, rmn) = s.split_at(2);
+            if let Some(kind) = match token {
+                "<=" => Some(TokenKind::Op(Op::Lte)),
+                ">=" => Some(TokenKind::Op(Op::Gte)),
+                "==" => Some(TokenKind::Op(Op::Eq)),
+                "!=" => Some(TokenKind::Op(Op::Neq)),
+                _ => None,
+            } {
+                let token = Token::new(kind, self.origin, self.pos);
+                return Some((token, rmn));
+            }
         }
 
         // 1文字のトークンを調べる
-        if let Some(kind) = match s.as_bytes()[0] {
-            b'+' => Some(TokenKind::Op(Op::Add)),
-            b'-' => Some(TokenKind::Op(Op::Sub)),
-            b'*' => Some(TokenKind::Op(Op::Mul)),
-            b'/' => Some(TokenKind::Op(Op::Div)),
-            b'<' => Some(TokenKind::Op(Op::Lt)),
-            b'>' => Some(TokenKind::Op(Op::Gt)),
-            b'(' => Some(TokenKind::Par(Par::Left)),
-            b')' => Some(TokenKind::Par(Par::Right)),
+        let (token, rmn) = s.split_at(1);
+        if let Some(kind) = match token {
+            "+" => Some(TokenKind::Op(Op::Add)),
+            "-" => Some(TokenKind::Op(Op::Sub)),
+            "*" => Some(TokenKind::Op(Op::Mul)),
+            "/" => Some(TokenKind::Op(Op::Div)),
+            "<" => Some(TokenKind::Op(Op::Lt)),
+            ">" => Some(TokenKind::Op(Op::Gt)),
+            "(" => Some(TokenKind::Par(Par::Left)),
+            ")" => Some(TokenKind::Par(Par::Right)),
             _ => None,
         } {
             let token = Token::new(kind, self.origin, self.pos);
-            return Some((token, s.split_at(1).1));
+            return Some((token, rmn));
         }
 
         let (digit_s, remain_s) = split_digit(s);
