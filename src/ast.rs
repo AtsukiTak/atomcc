@@ -62,18 +62,21 @@ pub fn equality(tokens: &mut TokenIter) -> Node {
 pub fn relational(tokens: &mut TokenIter) -> Node {
     let mut node = add(tokens);
     while let Some(token) = tokens.peek() {
-        let op = match token.op() {
-            Some(op @ Op::Lt) => op,
-            Some(op @ Op::Lte) => op,
-            Some(op @ Op::Gt) => op,
-            Some(op @ Op::Gte) => op,
+        let (op, reverse) = match token.op() {
+            Some(op @ Op::Lt) => (op, false),
+            Some(op @ Op::Lte) => (op, false),
+            Some(Op::Gt) => (Op::Lt, true),
+            Some(Op::Gte) => (Op::Lte, true),
             _ => break,
         };
 
         // このルートに入ることが確定したのでイテレータを進める
         let _ = tokens.next();
-        let rhs = add(tokens);
-        node = Node::new_op(op, node, rhs);
+        if reverse {
+            node = Node::new_op(op, add(tokens), node);
+        } else {
+            node = Node::new_op(op, node, add(tokens));
+        }
     }
     node
 }
