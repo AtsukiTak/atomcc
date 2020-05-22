@@ -29,5 +29,9 @@ assert 4 '(3+5)/2'
 assert 4 '+4'
 assert 2 '-14+16'
 assert 20 '-(4+6)*2+40'
+assert 0 '1 == 0'
+assert 1 '1 != 0'
+assert 1 '(1 + 40) > 2 * 10'
+assert 1 '(1 + 40) >= 2 * 10 + 21'
 
 echo OK

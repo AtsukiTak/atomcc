@@ -10,7 +10,7 @@ pub fn gen(node: &Node) {
             gen(lhs); // スタックトップに1つ値が残る（ようなコードを生成する）
             gen(rhs); // スタックトップに1つ値が残る（ようなコードを生成する）
 
-            println!("  pop rdi"); // 左ブランチの計算結果をridレジスタに記録
+            println!("  pop rdi"); // 左ブランチの計算結果をrdiレジスタに記録
             println!("  pop rax"); // 右ブランチの計算結果をraxレジスタに記録
 
             match kind {
@@ -22,24 +22,24 @@ pub fn gen(node: &Node) {
                     println!("  idiv rdi");
                 }
                 Op::Eq => {
-                    println!("  cmp rax, rid");
+                    println!("  cmp rax, rdi");
                     println!("  sete al");
-                    println!("  movzb raw, al");
+                    println!("  movzx rax, al");
                 }
                 Op::Neq => {
-                    println!("  cmp rax, rid");
+                    println!("  cmp rax, rdi");
                     println!("  setne al");
-                    println!("  movzb raw, al");
+                    println!("  movzx rax, al");
                 }
                 Op::Lt => {
-                    println!("  cmp rax, rid");
+                    println!("  cmp rax, rdi");
                     println!("  setl al");
-                    println!("  movzb raw, al");
+                    println!("  movzx rax, al");
                 }
                 Op::Lte => {
-                    println!("  cmp rax, rid");
+                    println!("  cmp rax, rdi");
                     println!("  setle al");
-                    println!("  movzb raw, al");
+                    println!("  movzx rax, al");
                 }
                 _ => unreachable!(),
             }
