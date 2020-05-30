@@ -10,6 +10,8 @@ pub enum TokenKind {
     Op(Op),
     Par(Par),
     Num(usize),
+    /// 現在は1文字変数のみ扱う
+    Ident(char),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -133,15 +135,16 @@ impl<'a> TokenIter<'a> {
 
         // 1文字のトークンを調べる
         let (token, rmn) = s.split_at(1);
-        if let Some(kind) = match token {
-            "+" => Some(TokenKind::Op(Op::Add)),
-            "-" => Some(TokenKind::Op(Op::Sub)),
-            "*" => Some(TokenKind::Op(Op::Mul)),
-            "/" => Some(TokenKind::Op(Op::Div)),
-            "<" => Some(TokenKind::Op(Op::Lt)),
-            ">" => Some(TokenKind::Op(Op::Gt)),
-            "(" => Some(TokenKind::Par(Par::Left)),
-            ")" => Some(TokenKind::Par(Par::Right)),
+        if let Some(kind) = match token.chars().next().unwrap() {
+            '+' => Some(TokenKind::Op(Op::Add)),
+            '-' => Some(TokenKind::Op(Op::Sub)),
+            '*' => Some(TokenKind::Op(Op::Mul)),
+            '/' => Some(TokenKind::Op(Op::Div)),
+            '<' => Some(TokenKind::Op(Op::Lt)),
+            '>' => Some(TokenKind::Op(Op::Gt)),
+            '(' => Some(TokenKind::Par(Par::Left)),
+            ')' => Some(TokenKind::Par(Par::Right)),
+            c @ 'a'..='z' => Some(TokenKind::Ident(c)),
             _ => None,
         } {
             let token = Token::new(kind, self.origin, self.pos);
