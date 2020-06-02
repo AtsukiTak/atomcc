@@ -3,6 +3,8 @@ use crate::token::{Op, Par, Token, TokenIter, TokenKind};
 pub enum Node {
     /// 末端Node
     Num(usize),
+    /// 末端Node
+    Ident(char),
     /// 非末端Node
     Op(OpNode),
 }
@@ -17,6 +19,11 @@ impl Node {
     /// 数値を表すNodeを作成する。
     pub fn new_num(i: usize) -> Node {
         Node::Num(i)
+    }
+
+    /// 変数を表すNodeを作成する。
+    pub fn new_ident(i: char) -> Node {
+        Node::Ident(i)
     }
 
     /// 左辺と右辺を受け取る２項演算子を表すNodeを作成する
@@ -169,16 +176,18 @@ pub fn unary(tokens: &mut TokenIter) -> Node {
     }
 }
 
-/// > primary = num | "(" expr ")"
+/// > primary = num | ident | "(" expr ")"
 ///
 /// で表現される非終端記号primaryをパースする関数。
 pub fn primary(tokens: &mut TokenIter) -> Node {
     let token = tokens.next().unwrap_or_else(|| {
-        tokens.exit_with_err_msg("Unexpected EOF. number, \"(\" or \")\" is expected")
+        tokens.exit_with_err_msg("Unexpected EOF. number, ident or \"(\" is expected")
     });
 
     if let Some(n) = token.num() {
         Node::new_num(n)
+    } else if let Some(c) = token.ident() {
+        Node::new_ident(c)
     } else {
         if !matches!(token.expect_par(), Par::Left) {
             token.exit_with_err_msg("expect \"(\" instead of \")\"");

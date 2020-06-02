@@ -107,6 +107,13 @@ impl<'a> Token<'a> {
             .unwrap_or_else(|| self.exit_with_err_msg("not a number"))
     }
 
+    pub fn ident(&self) -> Option<char> {
+        match self.kind {
+            TokenKind::Ident(c) => Some(c),
+            _ => None,
+        }
+    }
+
     pub fn exit_with_err_msg(&self, msg: &'static str) -> ! {
         exit_with_err_msg(self.origin, self.pos, msg)
     }
