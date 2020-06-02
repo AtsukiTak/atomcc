@@ -1,4 +1,4 @@
-use crate::token::{Op, Par, TokenIter};
+use crate::token::{Op, Par, Token, TokenIter, TokenKind};
 
 pub enum Node {
     /// 末端Node
@@ -29,11 +29,43 @@ impl Node {
     }
 }
 
-/// > expr = mul ("+" mul | "-" mul)*
-///
-/// で表現される非終端記号exprをパースする関数。
+// > stmt*
+pub fn program(tokens: &mut TokenIter) -> Vec<Node> {
+    let mut nodes = Vec::new();
+    while let Some(_) = tokens.peek() {
+        nodes.push(stmt(tokens))
+    }
+    nodes
+}
+
+/// > stmt = expr ";"
+pub fn stmt(tokens: &mut TokenIter) -> Node {
+    let node = expr(tokens);
+    match tokens.next() {
+        Some(Token {
+            kind: TokenKind::Semi,
+            ..
+        }) => node,
+        Some(t) => t.exit_with_err_msg("expected \";\" but found another"),
+        None => tokens.exit_with_err_msg("expected \";\" but found EOF"),
+    }
+}
+
+/// > expr = assign
 pub fn expr(tokens: &mut TokenIter) -> Node {
     equality(tokens)
+}
+
+/// > assign = equality ("=" assign)?
+pub fn assign(tokens: &mut TokenIter) -> Node {
+    let node = equality(tokens);
+    match tokens.peek() {
+        Some(Token {
+            kind: TokenKind::Op(Op::Assign),
+            ..
+        }) => Node::new_op(Op::Assign, node, assign(tokens)),
+        _ => node,
+    }
 }
 
 /// > equality = relational ("==" relational | "!=" relational)*

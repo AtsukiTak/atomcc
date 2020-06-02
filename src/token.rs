@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, Copy)]
 pub struct Token<'a> {
-    kind: TokenKind,
+    pub kind: TokenKind,
     origin: &'a str,
     pos: usize,
 }
@@ -12,6 +12,8 @@ pub enum TokenKind {
     Num(usize),
     /// 現在は1文字変数のみ扱う
     Ident(char),
+    /// ";"
+    Semi,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -29,6 +31,9 @@ pub enum Op {
     Gte, // >=
     Eq,  // ==
     Neq, // !=
+
+    // 代入演算子
+    Assign, // =
 }
 
 /// Parentheses
@@ -142,9 +147,11 @@ impl<'a> TokenIter<'a> {
             '/' => Some(TokenKind::Op(Op::Div)),
             '<' => Some(TokenKind::Op(Op::Lt)),
             '>' => Some(TokenKind::Op(Op::Gt)),
+            '=' => Some(TokenKind::Op(Op::Assign)),
             '(' => Some(TokenKind::Par(Par::Left)),
             ')' => Some(TokenKind::Par(Par::Right)),
             c @ 'a'..='z' => Some(TokenKind::Ident(c)),
+            ';' => Some(TokenKind::Semi),
             _ => None,
         } {
             let token = Token::new(kind, self.origin, self.pos);
