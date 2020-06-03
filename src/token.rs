@@ -43,6 +43,7 @@ pub enum Par {
     Right,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct TokenIter<'a> {
     origin: &'a str,
     s: &'a str,

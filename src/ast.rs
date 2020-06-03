@@ -36,7 +36,22 @@ impl Node {
     }
 }
 
-// > stmt*
+/// > program       = stmt*
+/// > stmt          = assign ";"
+/// > assign        = (ident "=")? expr
+/// > expr          = equality
+/// > equality      = relational ("==" relational | "!=" relational)*
+/// > relational    = add ("<" add | "<=" add | ">" add | ">=" add)*
+/// > add           = mul ("+" mul | "-" mul)*
+/// > unary         = ("+" | "-")? primary
+/// > primary       = num | ident | "(" expr ")"
+///
+/// で表現される文法をパースする関数。
+pub fn parse(tokens: &mut TokenIter) -> Vec<Node> {
+    program(tokens)
+}
+
+/// > program       = stmt*
 pub fn program(tokens: &mut TokenIter) -> Vec<Node> {
     let mut nodes = Vec::new();
     while let Some(_) = tokens.peek() {
@@ -45,7 +60,7 @@ pub fn program(tokens: &mut TokenIter) -> Vec<Node> {
     nodes
 }
 
-/// > stmt = expr ";"
+/// > stmt          = assign ";"
 pub fn stmt(tokens: &mut TokenIter) -> Node {
     let node = expr(tokens);
     match tokens.next() {
@@ -58,26 +73,39 @@ pub fn stmt(tokens: &mut TokenIter) -> Node {
     }
 }
 
-/// > expr = assign
+/// > assign        = (ident "=")? expr
+pub fn assign(tokens: &mut TokenIter) -> Node {
+    // 与えられたTokenIterが (ident "=") で始まるかチェックする
+    let mut tokens2 = *tokens;
+    match (tokens2.next(), tokens2.next()) {
+        // (ident "=") で始まった場合のルート.
+        // tokensを2つ進める。
+        (
+            Some(Token {
+                kind: TokenKind::Ident(c),
+                ..
+            }),
+            Some(Token {
+                kind: TokenKind::Op(Op::Assign),
+                ..
+            }),
+        ) => {
+            tokens.next();
+            tokens.next();
+            Node::new_op(Op::Assign, Node::new_ident(c), expr(tokens))
+        }
+        // (ident "=") で始まらなかった場合のルート.
+        // tokensは進んでいないことに注意。
+        _ => expr(tokens),
+    }
+}
+
+/// > expr          = equality
 pub fn expr(tokens: &mut TokenIter) -> Node {
     equality(tokens)
 }
 
-/// > assign = equality ("=" assign)?
-pub fn assign(tokens: &mut TokenIter) -> Node {
-    let node = equality(tokens);
-    match tokens.peek() {
-        Some(Token {
-            kind: TokenKind::Op(Op::Assign),
-            ..
-        }) => Node::new_op(Op::Assign, node, assign(tokens)),
-        _ => node,
-    }
-}
-
-/// > equality = relational ("==" relational | "!=" relational)*
-///
-/// で表現される非終端義号equalityをパースする関数
+/// > equality      = relational ("==" relational | "!=" relational)*
 pub fn equality(tokens: &mut TokenIter) -> Node {
     let mut node = relational(tokens);
     while let Some(token) = tokens.peek() {
@@ -95,9 +123,7 @@ pub fn equality(tokens: &mut TokenIter) -> Node {
     node
 }
 
-/// > add = ("<" add | "<=" add | ">" add | ">=" add)*
-///
-/// で表現される非終端記号relationalをパースする関数
+/// > relational    = ("<" add | "<=" add | ">" add | ">=" add)*
 pub fn relational(tokens: &mut TokenIter) -> Node {
     let mut node = add(tokens);
     while let Some(token) = tokens.peek() {
@@ -120,9 +146,7 @@ pub fn relational(tokens: &mut TokenIter) -> Node {
     node
 }
 
-/// > add = mul ("+" mul | "-" mul)*
-///
-/// で表される非終端記号addをパースする関数
+/// > add           = mul ("+" mul | "-" mul)*
 pub fn add(tokens: &mut TokenIter) -> Node {
     let mut node = mul(tokens);
     while let Some(token) = tokens.peek() {
@@ -140,9 +164,7 @@ pub fn add(tokens: &mut TokenIter) -> Node {
     node
 }
 
-/// > mul = unary ("*" unary | "/" unary)*
-///
-/// で表現される非終端記号mulをパースする関数。
+/// > mul       = unary ("*" unary | "/" unary)*
 pub fn mul(tokens: &mut TokenIter) -> Node {
     let mut node = unary(tokens);
     while let Some(token) = tokens.peek() {
@@ -159,7 +181,7 @@ pub fn mul(tokens: &mut TokenIter) -> Node {
     node
 }
 
-/// > unary = ("+" | "-")? primary
+/// > unary     = ("+" | "-")? primary
 ///
 /// で表現される非終端記号unaryをパースする関数。
 pub fn unary(tokens: &mut TokenIter) -> Node {
@@ -176,7 +198,7 @@ pub fn unary(tokens: &mut TokenIter) -> Node {
     }
 }
 
-/// > primary = num | ident | "(" expr ")"
+/// > primary   = num | ident | "(" expr ")"
 ///
 /// で表現される非終端記号primaryをパースする関数。
 pub fn primary(tokens: &mut TokenIter) -> Node {
