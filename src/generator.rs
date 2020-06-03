@@ -1,15 +1,40 @@
 use crate::{
-    ast::{Node, OpNode},
+    ast::{AssignNode, ExprNode, Node, OpNode},
     token::Op,
 };
 
+/// １つのstmtを処理するようなコードを生成する
 pub fn gen(node: &Node) {
     match node {
-        Node::Num(n) => println!("  push {}", n),
-        Node::Ident(c) => todo!(),
-        Node::Op(OpNode { kind, lhs, rhs }) => {
-            gen(lhs); // スタックトップに1つ値が残る（ようなコードを生成する）
-            gen(rhs); // スタックトップに1つ値が残る（ようなコードを生成する）
+        Node::Expr(expr) => gen_expr(expr),
+
+        // ローカル変数にスタックトップの値を代入する
+        Node::Assign(AssignNode { lhs_ident, rhs }) => {
+            gen_expr(rhs);
+            let offset = (*lhs_ident - b'a' + 1) * 8;
+            println!("  pop rax");
+            println!("  mov [rbp - {}], rax", offset);
+        }
+    }
+}
+
+// スタックトップにexprの結果の値を1つ載せるようなコードを生成する
+pub fn gen_expr(node: &ExprNode) {
+    match node {
+        // スタックトップに即値を載せる
+        ExprNode::Num(n) => println!("  push {}", n),
+
+        // スタックトップに変数の値を載せる
+        ExprNode::Ident(c) => {
+            let offset = (*c - b'a' + 1) * 8;
+            println!("  mov rax, [rbp - {}]", offset);
+            println!("  push rax");
+        }
+
+        // スタックトップに計算結果を載せる
+        ExprNode::Op(OpNode { kind, lhs, rhs }) => {
+            gen_expr(lhs); // スタックトップに1つ値が残る（ようなコードを生成する）
+            gen_expr(rhs); // スタックトップに1つ値が残る（ようなコードを生成する）
 
             println!("  pop rdi"); // 左ブランチの計算結果をrdiレジスタに記録
             println!("  pop rax"); // 右ブランチの計算結果をraxレジスタに記録

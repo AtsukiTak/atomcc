@@ -11,7 +11,7 @@ pub enum TokenKind {
     Par(Par),
     Num(usize),
     /// 現在は1文字変数のみ扱う
-    Ident(char),
+    Ident(u8),
     /// ";"
     Semi,
 }
@@ -108,7 +108,7 @@ impl<'a> Token<'a> {
             .unwrap_or_else(|| self.exit_with_err_msg("not a number"))
     }
 
-    pub fn ident(&self) -> Option<char> {
+    pub fn ident(&self) -> Option<u8> {
         match self.kind {
             TokenKind::Ident(c) => Some(c),
             _ => None,
@@ -148,18 +148,18 @@ impl<'a> TokenIter<'a> {
 
         // 1文字のトークンを調べる
         let (token, rmn) = s.split_at(1);
-        if let Some(kind) = match token.chars().next().unwrap() {
-            '+' => Some(TokenKind::Op(Op::Add)),
-            '-' => Some(TokenKind::Op(Op::Sub)),
-            '*' => Some(TokenKind::Op(Op::Mul)),
-            '/' => Some(TokenKind::Op(Op::Div)),
-            '<' => Some(TokenKind::Op(Op::Lt)),
-            '>' => Some(TokenKind::Op(Op::Gt)),
-            '=' => Some(TokenKind::Op(Op::Assign)),
-            '(' => Some(TokenKind::Par(Par::Left)),
-            ')' => Some(TokenKind::Par(Par::Right)),
-            c @ 'a'..='z' => Some(TokenKind::Ident(c)),
-            ';' => Some(TokenKind::Semi),
+        if let Some(kind) = match token.as_bytes()[0] {
+            b'+' => Some(TokenKind::Op(Op::Add)),
+            b'-' => Some(TokenKind::Op(Op::Sub)),
+            b'*' => Some(TokenKind::Op(Op::Mul)),
+            b'/' => Some(TokenKind::Op(Op::Div)),
+            b'<' => Some(TokenKind::Op(Op::Lt)),
+            b'>' => Some(TokenKind::Op(Op::Gt)),
+            b'=' => Some(TokenKind::Op(Op::Assign)),
+            b'(' => Some(TokenKind::Par(Par::Left)),
+            b')' => Some(TokenKind::Par(Par::Right)),
+            c @ b'a'..=b'z' => Some(TokenKind::Ident(c)),
+            b';' => Some(TokenKind::Semi),
             _ => None,
         } {
             let token = Token::new(kind, self.origin, self.pos);
