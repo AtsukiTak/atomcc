@@ -166,18 +166,19 @@ impl<'a> TokenIter<'a> {
             return Some((token, rmn));
         }
 
-        // 識別子を調べる
-        if let Some(token) = s.split_whitespace().next() {
-            let (_, rmn) = s.split_at(token.len());
-            let token = Token::new(TokenKind::Ident(token), self.origin, self.pos);
-            return Some((token, rmn));
-        }
-
+        // 数値リテラルを調べる
         let (digit_s, remain_s) = split_digit(s);
         if !digit_s.is_empty() {
             let digit = usize::from_str_radix(digit_s, 10).unwrap();
             let token = Token::new_num(digit, self.origin, self.pos);
             return Some((token, remain_s));
+        }
+
+        // 識別子を調べる
+        if let Some(token) = s.split_whitespace().next() {
+            let (_, rmn) = s.split_at(token.len());
+            let token = Token::new(TokenKind::Ident(token), self.origin, self.pos);
+            return Some((token, rmn));
         }
 
         self.exit_with_err_msg("Unable to tokenize")
