@@ -9,11 +9,13 @@ pub fn gen(node: &Node) {
         Node::Expr(expr) => gen_expr(expr),
 
         // ローカル変数にスタックトップの値を代入する
-        Node::Assign(AssignNode { lhs_ident, rhs }) => {
+        Node::Assign(AssignNode {
+            lhs_ident_offset,
+            rhs,
+        }) => {
             gen_expr(rhs);
-            let offset = (*lhs_ident - b'a' + 1) * 8;
             println!("  pop rax");
-            println!("  mov [rbp - {}], rax", offset);
+            println!("  mov [rbp - {}], rax", lhs_ident_offset);
         }
     }
 }
@@ -25,8 +27,7 @@ pub fn gen_expr(node: &ExprNode) {
         ExprNode::Num(n) => println!("  push {}", n),
 
         // スタックトップに変数の値を載せる
-        ExprNode::Ident(c) => {
-            let offset = (*c - b'a' + 1) * 8;
+        ExprNode::Ident { offset } => {
             println!("  mov rax, [rbp - {}]", offset);
             println!("  push rax");
         }

@@ -1,43 +1,45 @@
 use crate::token::{Op, Par, Token, TokenIter, TokenKind};
 use std::collections::HashMap;
 
-pub enum Node<'a> {
-    Assign(AssignNode<'a>),
-    Expr(ExprNode<'a>),
+pub enum Node {
+    Assign(AssignNode),
+    Expr(ExprNode),
 }
 
-pub struct AssignNode<'a> {
-    pub lhs_ident: &'a str,
-    pub rhs: ExprNode<'a>,
+pub struct AssignNode {
+    pub lhs_ident_offset: usize,
+    pub rhs: ExprNode,
 }
 
-pub enum ExprNode<'a> {
+pub enum ExprNode {
     /// 末端Node
     Num(usize),
-    Ident(&'a str),
+    Ident {
+        offset: usize,
+    },
     /// 非末端Node
-    Op(OpNode<'a>),
+    Op(OpNode),
 }
 
-pub struct OpNode<'a> {
+pub struct OpNode {
     pub kind: Op,
-    pub lhs: Box<ExprNode<'a>>,
-    pub rhs: Box<ExprNode<'a>>,
+    pub lhs: Box<ExprNode>,
+    pub rhs: Box<ExprNode>,
 }
 
-impl<'a> ExprNode<'a> {
+impl ExprNode {
     /// 数値を表すNodeを作成する。
     pub fn new_num(i: usize) -> Self {
         ExprNode::Num(i)
     }
 
     /// 変数を表すNodeを作成する。
-    pub fn new_ident(s: &'a str) -> Self {
-        ExprNode::Ident(s)
+    pub fn new_ident(offset: usize) -> Self {
+        ExprNode::Ident { offset }
     }
 
     /// 左辺と右辺を受け取る２項演算子を表すNodeを作成する
-    pub fn new_op(op: Op, lhs: ExprNode<'a>, rhs: ExprNode<'a>) -> Self {
+    pub fn new_op(op: Op, lhs: ExprNode, rhs: ExprNode) -> Self {
         ExprNode::Op(OpNode {
             kind: op,
             lhs: Box::new(lhs),
@@ -68,14 +70,14 @@ impl<'a> Parser<'a> {
     /// > primary       = num | ident | "(" expr ")"
     ///
     /// で表現される文法をパースする関数。
-    pub fn parse(&mut self, tokens: &mut TokenIter<'a>) -> Vec<Node<'a>> {
+    pub fn parse(&mut self, tokens: &mut TokenIter<'a>) -> Vec<Node> {
         self.parse_program(tokens)
     }
 
     /// > program       = stmt*
     ///
     /// で表現される記号programをパースする関数。
-    pub fn parse_program(&mut self, tokens: &mut TokenIter<'a>) -> Vec<Node<'a>> {
+    pub fn parse_program(&mut self, tokens: &mut TokenIter<'a>) -> Vec<Node> {
         let mut nodes = Vec::new();
         while let Some(_) = tokens.peek() {
             nodes.push(self.parse_stmt(tokens))
@@ -86,7 +88,7 @@ impl<'a> Parser<'a> {
     /// > stmt          = assign ";"
     ///
     /// で表現される記号stmtをパースする関数。
-    pub fn parse_stmt(&mut self, tokens: &mut TokenIter<'a>) -> Node<'a> {
+    pub fn parse_stmt(&mut self, tokens: &mut TokenIter<'a>) -> Node {
         let node = self.parse_assign(tokens);
         match tokens.next() {
             Some(Token {
@@ -101,7 +103,7 @@ impl<'a> Parser<'a> {
     /// > assign        = (ident "=")? expr
     ///
     /// で表現される記号assignをパースする関数。
-    pub fn parse_assign(&mut self, tokens: &mut TokenIter<'a>) -> Node<'a> {
+    pub fn parse_assign(&mut self, tokens: &mut TokenIter<'a>) -> Node {
         // 与えられたTokenIterが (ident "=") で始まるかチェックする
         let mut tokens2 = *tokens;
         match (tokens2.next(), tokens2.next()) {
@@ -120,7 +122,8 @@ impl<'a> Parser<'a> {
                 tokens.next();
                 tokens.next();
                 Node::Assign(AssignNode {
-                    lhs_ident: s,
+                    // TODO
+                    lhs_ident_offset: 0,
                     rhs: self.parse_expr(tokens),
                 })
             }
@@ -133,14 +136,14 @@ impl<'a> Parser<'a> {
     /// > expr          = equality
     ///
     /// で表現される記号exprをパースする関数。
-    pub fn parse_expr(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
+    pub fn parse_expr(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
         self.parse_equality(tokens)
     }
 
     /// > equality      = relational ("==" relational | "!=" relational)*
     ///
     /// で表現される記号equalityをパースする関数。
-    pub fn parse_equality(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
+    pub fn parse_equality(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
         let mut node = self.parse_relational(tokens);
         while let Some(token) = tokens.peek() {
             let op = match token.op() {
@@ -160,7 +163,7 @@ impl<'a> Parser<'a> {
     /// > relational    = ("<" add | "<=" add | ">" add | ">=" add)*
     ///
     /// で表現される記号relationalをパースする関数。
-    pub fn parse_relational(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
+    pub fn parse_relational(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
         let mut node = self.parse_add(tokens);
         while let Some(token) = tokens.peek() {
             let (op, reverse) = match token.op() {
@@ -185,7 +188,7 @@ impl<'a> Parser<'a> {
     /// > add           = mul ("+" mul | "-" mul)*
     ///
     /// で表現される記号addをパースする関数。
-    pub fn parse_add(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
+    pub fn parse_add(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
         let mut node = self.parse_mul(tokens);
         while let Some(token) = tokens.peek() {
             let op = match token.op() {
@@ -205,7 +208,7 @@ impl<'a> Parser<'a> {
     /// > mul       = unary ("*" unary | "/" unary)*
     ///
     /// で表現される記号mulをパースする関数。
-    pub fn parse_mul(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
+    pub fn parse_mul(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
         let mut node = self.parse_unary(tokens);
         while let Some(token) = tokens.peek() {
             let op = match token.op() {
@@ -224,7 +227,7 @@ impl<'a> Parser<'a> {
     /// > unary     = ("+" | "-")? primary
     ///
     /// で表現される記号unaryをパースする関数。
-    pub fn parse_unary(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
+    pub fn parse_unary(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
         match tokens.peek().and_then(|token| token.op()) {
             Some(Op::Add) => {
                 let _ = tokens.next();
@@ -241,7 +244,7 @@ impl<'a> Parser<'a> {
     /// > primary   = num | ident | "(" expr ")"
     ///
     /// で表現される記号primaryをパースする関数。
-    pub fn parse_primary(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
+    pub fn parse_primary(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
         let token = tokens.next().unwrap_or_else(|| {
             tokens.exit_with_err_msg("Unexpected EOF. number, ident or \"(\" is expected")
         });
@@ -249,7 +252,8 @@ impl<'a> Parser<'a> {
         if let Some(n) = token.num() {
             ExprNode::new_num(n)
         } else if let Some(c) = token.ident() {
-            ExprNode::new_ident(c)
+            // TODO
+            ExprNode::new_ident(0)
         } else {
             if !matches!(token.expect_par(), Par::Left) {
                 token.exit_with_err_msg("expect \"(\" instead of \")\"");
