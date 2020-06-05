@@ -7,12 +7,16 @@ pub struct Token<'a> {
 
 #[derive(Debug, Clone, Copy)]
 pub enum TokenKind<'a> {
+    /// 演算子
     Op(Op),
-    /// "(", ")"
+    /// "(" or ")"
     Par(Par),
+    /// 数値リテラル
     Num(usize),
     /// 識別子（変数名とか）
     Ident(&'a str),
+    /// "return" keyword
+    Return,
     /// ";"
     Semi,
 }
@@ -174,10 +178,14 @@ impl<'a> TokenIter<'a> {
             return Some((token, remain_s));
         }
 
-        // 識別子を調べる
+        // キーワード/識別子を調べる
         if let Some(token) = s.split_whitespace().next() {
+            let kind = match token {
+                "return" => TokenKind::Return,
+                _ => TokenKind::Ident(token),
+            };
             let (_, rmn) = s.split_at(token.len());
-            let token = Token::new(TokenKind::Ident(token), self.origin, self.pos);
+            let token = Token::new(kind, self.origin, self.pos);
             return Some((token, rmn));
         }
 
