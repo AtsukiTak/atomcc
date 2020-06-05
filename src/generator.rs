@@ -17,6 +17,16 @@ pub fn gen(node: &Node) {
             println!("  pop rax");
             println!("  mov [rbp - {}], rax", lhs_ident_offset);
         }
+
+        Node::Return(expr) => {
+            gen_expr(expr);
+            println!("  pop rax");
+
+            // エピローグ
+            println!("  mov rsp, rbp");
+            println!("  pop rbp");
+            println!("  ret");
+        }
     }
 }
 

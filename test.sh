@@ -36,5 +36,7 @@ assert 1 '(1 + 40) >= 2 * 10 + 21;'
 assert 24 '42;24;'
 assert 42 'a = 40; a + 2;'
 assert 42 'foo = 40; foo + 2;'
+assert 42 'return 42;'
+assert 42 'foo = 11; return foo + 31;'
 
 echo OK

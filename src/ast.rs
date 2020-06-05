@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub enum Node {
     Assign(AssignNode),
     Expr(ExprNode),
+    Return(ExprNode),
 }
 
 pub struct AssignNode {
@@ -73,7 +74,7 @@ impl<'a> Parser<'a> {
     }
 
     /// > program       = stmt*
-    /// > stmt          = assign ";"
+    /// > stmt          = assign ";" | "return" expr ";"
     /// > assign        = (ident "=")? expr
     /// > expr          = equality
     /// > equality      = relational ("==" relational | "!=" relational)*
@@ -98,11 +99,23 @@ impl<'a> Parser<'a> {
         nodes
     }
 
-    /// > stmt          = assign ";"
+    /// > stmt          = assign ";" | "return" expr ";"
     ///
     /// で表現される記号stmtをパースする関数。
     pub fn parse_stmt(&mut self, tokens: &mut TokenIter<'a>) -> Node {
-        let node = self.parse_assign(tokens);
+        // TokenIterが"return" から始まるかチェックする
+        let node = if let Some(Token {
+            kind: TokenKind::Return,
+            ..
+        }) = tokens.peek()
+        {
+            tokens.next();
+            Node::Return(self.parse_expr(tokens))
+        } else {
+            self.parse_assign(tokens)
+        };
+
+        // 次のTokenがセミコロンかチェックする
         match tokens.next() {
             Some(Token {
                 kind: TokenKind::Semi,
