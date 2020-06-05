@@ -1,42 +1,42 @@
 use crate::token::{Op, Par, Token, TokenIter, TokenKind};
 
-pub enum Node {
-    Assign(AssignNode),
-    Expr(ExprNode),
+pub enum Node<'a> {
+    Assign(AssignNode<'a>),
+    Expr(ExprNode<'a>),
 }
 
-pub struct AssignNode {
-    pub lhs_ident: u8,
-    pub rhs: ExprNode,
+pub struct AssignNode<'a> {
+    pub lhs_ident: &'a str,
+    pub rhs: ExprNode<'a>,
 }
 
-pub enum ExprNode {
+pub enum ExprNode<'a> {
     /// 末端Node
     Num(usize),
-    Ident(u8),
+    Ident(&'a str),
     /// 非末端Node
-    Op(OpNode),
+    Op(OpNode<'a>),
 }
 
-pub struct OpNode {
+pub struct OpNode<'a> {
     pub kind: Op,
-    pub lhs: Box<ExprNode>,
-    pub rhs: Box<ExprNode>,
+    pub lhs: Box<ExprNode<'a>>,
+    pub rhs: Box<ExprNode<'a>>,
 }
 
-impl ExprNode {
+impl<'a> ExprNode<'a> {
     /// 数値を表すNodeを作成する。
     pub fn new_num(i: usize) -> Self {
         ExprNode::Num(i)
     }
 
     /// 変数を表すNodeを作成する。
-    pub fn new_ident(i: u8) -> Self {
-        ExprNode::Ident(i)
+    pub fn new_ident(s: &'a str) -> Self {
+        ExprNode::Ident(s)
     }
 
     /// 左辺と右辺を受け取る２項演算子を表すNodeを作成する
-    pub fn new_op(op: Op, lhs: ExprNode, rhs: ExprNode) -> Self {
+    pub fn new_op(op: Op, lhs: ExprNode<'a>, rhs: ExprNode<'a>) -> Self {
         ExprNode::Op(OpNode {
             kind: op,
             lhs: Box::new(lhs),
@@ -56,12 +56,12 @@ impl ExprNode {
 /// > primary       = num | ident | "(" expr ")"
 ///
 /// で表現される文法をパースする関数。
-pub fn parse(tokens: &mut TokenIter) -> Vec<Node> {
+pub fn parse<'a>(tokens: &mut TokenIter<'a>) -> Vec<Node<'a>> {
     program(tokens)
 }
 
 /// > program       = stmt*
-pub fn program(tokens: &mut TokenIter) -> Vec<Node> {
+pub fn program<'a>(tokens: &mut TokenIter<'a>) -> Vec<Node<'a>> {
     let mut nodes = Vec::new();
     while let Some(_) = tokens.peek() {
         nodes.push(stmt(tokens))
@@ -70,7 +70,7 @@ pub fn program(tokens: &mut TokenIter) -> Vec<Node> {
 }
 
 /// > stmt          = assign ";"
-pub fn stmt(tokens: &mut TokenIter) -> Node {
+pub fn stmt<'a>(tokens: &mut TokenIter<'a>) -> Node<'a> {
     let node = assign(tokens);
     match tokens.next() {
         Some(Token {
@@ -83,7 +83,7 @@ pub fn stmt(tokens: &mut TokenIter) -> Node {
 }
 
 /// > assign        = (ident "=")? expr
-pub fn assign(tokens: &mut TokenIter) -> Node {
+pub fn assign<'a>(tokens: &mut TokenIter<'a>) -> Node<'a> {
     // 与えられたTokenIterが (ident "=") で始まるかチェックする
     let mut tokens2 = *tokens;
     match (tokens2.next(), tokens2.next()) {
@@ -91,7 +91,7 @@ pub fn assign(tokens: &mut TokenIter) -> Node {
         // tokensを2つ進める。
         (
             Some(Token {
-                kind: TokenKind::Ident(c),
+                kind: TokenKind::Ident(s),
                 ..
             }),
             Some(Token {
@@ -102,7 +102,7 @@ pub fn assign(tokens: &mut TokenIter) -> Node {
             tokens.next();
             tokens.next();
             Node::Assign(AssignNode {
-                lhs_ident: c,
+                lhs_ident: s,
                 rhs: expr(tokens),
             })
         }
@@ -113,12 +113,12 @@ pub fn assign(tokens: &mut TokenIter) -> Node {
 }
 
 /// > expr          = equality
-pub fn expr(tokens: &mut TokenIter) -> ExprNode {
+pub fn expr<'a>(tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
     equality(tokens)
 }
 
 /// > equality      = relational ("==" relational | "!=" relational)*
-pub fn equality(tokens: &mut TokenIter) -> ExprNode {
+pub fn equality<'a>(tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
     let mut node = relational(tokens);
     while let Some(token) = tokens.peek() {
         let op = match token.op() {
@@ -136,7 +136,7 @@ pub fn equality(tokens: &mut TokenIter) -> ExprNode {
 }
 
 /// > relational    = ("<" add | "<=" add | ">" add | ">=" add)*
-pub fn relational(tokens: &mut TokenIter) -> ExprNode {
+pub fn relational<'a>(tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
     let mut node = add(tokens);
     while let Some(token) = tokens.peek() {
         let (op, reverse) = match token.op() {
@@ -159,7 +159,7 @@ pub fn relational(tokens: &mut TokenIter) -> ExprNode {
 }
 
 /// > add           = mul ("+" mul | "-" mul)*
-pub fn add(tokens: &mut TokenIter) -> ExprNode {
+pub fn add<'a>(tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
     let mut node = mul(tokens);
     while let Some(token) = tokens.peek() {
         let op = match token.op() {
@@ -177,7 +177,7 @@ pub fn add(tokens: &mut TokenIter) -> ExprNode {
 }
 
 /// > mul       = unary ("*" unary | "/" unary)*
-pub fn mul(tokens: &mut TokenIter) -> ExprNode {
+pub fn mul<'a>(tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
     let mut node = unary(tokens);
     while let Some(token) = tokens.peek() {
         let op = match token.op() {
@@ -196,7 +196,7 @@ pub fn mul(tokens: &mut TokenIter) -> ExprNode {
 /// > unary     = ("+" | "-")? primary
 ///
 /// で表現される非終端記号unaryをパースする関数。
-pub fn unary(tokens: &mut TokenIter) -> ExprNode {
+pub fn unary<'a>(tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
     match tokens.peek().and_then(|token| token.op()) {
         Some(Op::Add) => {
             let _ = tokens.next();
@@ -213,7 +213,7 @@ pub fn unary(tokens: &mut TokenIter) -> ExprNode {
 /// > primary   = num | ident | "(" expr ")"
 ///
 /// で表現される非終端記号primaryをパースする関数。
-pub fn primary(tokens: &mut TokenIter) -> ExprNode {
+pub fn primary<'a>(tokens: &mut TokenIter<'a>) -> ExprNode<'a> {
     let token = tokens.next().unwrap_or_else(|| {
         tokens.exit_with_err_msg("Unexpected EOF. number, ident or \"(\" is expected")
     });

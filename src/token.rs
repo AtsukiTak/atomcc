@@ -1,17 +1,18 @@
 #[derive(Debug, Clone, Copy)]
 pub struct Token<'a> {
-    pub kind: TokenKind,
+    pub kind: TokenKind<'a>,
     origin: &'a str,
     pos: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum TokenKind {
+pub enum TokenKind<'a> {
     Op(Op),
+    /// "(", ")"
     Par(Par),
     Num(usize),
-    /// 現在は1文字変数のみ扱う
-    Ident(u8),
+    /// 識別子（変数名とか）
+    Ident(&'a str),
     /// ";"
     Semi,
 }
@@ -60,7 +61,7 @@ pub fn tokenize<'a>(s: &'a str) -> TokenIter<'a> {
 }
 
 impl<'a> Token<'a> {
-    fn new(kind: TokenKind, origin: &'a str, pos: usize) -> Token {
+    fn new(kind: TokenKind<'a>, origin: &'a str, pos: usize) -> Token<'a> {
         Token { kind, origin, pos }
     }
 
@@ -108,9 +109,9 @@ impl<'a> Token<'a> {
             .unwrap_or_else(|| self.exit_with_err_msg("not a number"))
     }
 
-    pub fn ident(&self) -> Option<u8> {
+    pub fn ident(&self) -> Option<&str> {
         match self.kind {
-            TokenKind::Ident(c) => Some(c),
+            TokenKind::Ident(s) => Some(s),
             _ => None,
         }
     }
@@ -158,11 +159,17 @@ impl<'a> TokenIter<'a> {
             b'=' => Some(TokenKind::Op(Op::Assign)),
             b'(' => Some(TokenKind::Par(Par::Left)),
             b')' => Some(TokenKind::Par(Par::Right)),
-            c @ b'a'..=b'z' => Some(TokenKind::Ident(c)),
             b';' => Some(TokenKind::Semi),
             _ => None,
         } {
             let token = Token::new(kind, self.origin, self.pos);
+            return Some((token, rmn));
+        }
+
+        // 識別子を調べる
+        if let Some(token) = s.split_whitespace().next() {
+            let (_, rmn) = s.split_at(token.len());
+            let token = Token::new(TokenKind::Ident(token), self.origin, self.pos);
             return Some((token, rmn));
         }
 
