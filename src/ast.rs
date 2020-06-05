@@ -59,6 +59,19 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn offset_of_local_var(&mut self, ident: &'a str) -> usize {
+        if let Some(offset) = self.local_vars.get(ident) {
+            *offset
+        } else {
+            let offset = match self.local_vars.values().max() {
+                Some(cur) => cur + 8,
+                None => 0,
+            };
+            self.local_vars.insert(ident, offset);
+            offset
+        }
+    }
+
     /// > program       = stmt*
     /// > stmt          = assign ";"
     /// > assign        = (ident "=")? expr
@@ -121,9 +134,11 @@ impl<'a> Parser<'a> {
                 // tokensを2つ進める。
                 tokens.next();
                 tokens.next();
+
+                // ローカル変数のoffsetを求める
+                let offset = self.offset_of_local_var(s);
                 Node::Assign(AssignNode {
-                    // TODO
-                    lhs_ident_offset: 0,
+                    lhs_ident_offset: offset,
                     rhs: self.parse_expr(tokens),
                 })
             }
@@ -251,9 +266,9 @@ impl<'a> Parser<'a> {
 
         if let Some(n) = token.num() {
             ExprNode::new_num(n)
-        } else if let Some(c) = token.ident() {
-            // TODO
-            ExprNode::new_ident(0)
+        } else if let Some(ident) = token.ident() {
+            let offset = self.offset_of_local_var(ident);
+            ExprNode::new_ident(offset)
         } else {
             if !matches!(token.expect_par(), Par::Left) {
                 token.exit_with_err_msg("expect \"(\" instead of \")\"");

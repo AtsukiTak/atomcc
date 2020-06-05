@@ -109,7 +109,7 @@ impl<'a> Token<'a> {
             .unwrap_or_else(|| self.exit_with_err_msg("not a number"))
     }
 
-    pub fn ident(&self) -> Option<&str> {
+    pub fn ident(&self) -> Option<&'a str> {
         match self.kind {
             TokenKind::Ident(s) => Some(s),
             _ => None,
