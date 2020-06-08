@@ -2,13 +2,13 @@ use super::Instruction;
 use super::Reg64;
 
 pub struct Mov<S, D> {
-    src: S,
     dst: D,
+    src: S,
 }
 
 impl Mov<Reg64, Reg64> {
-    pub fn new(src: Reg64, dst: Reg64) -> Self {
-        Mov { src, dst }
+    pub fn new(dst: Reg64, src: Reg64) -> Self {
+        Mov { dst, src }
     }
 }
 
