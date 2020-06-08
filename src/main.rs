@@ -1,4 +1,5 @@
 pub mod generator;
+pub mod inst;
 pub mod parser;
 pub mod token;
 
