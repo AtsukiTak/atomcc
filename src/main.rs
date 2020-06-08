@@ -3,6 +3,8 @@ pub mod inst;
 pub mod parser;
 pub mod token;
 
+use inst::{Instruction as _, Mov, Reg64::*};
+
 fn main() {
     let arg = std::env::args().nth(1).unwrap();
 
@@ -16,7 +18,7 @@ fn main() {
     // プロローグ
     // 変数26個分の領域を確保する
     println!("  push rbp");
-    println!("  mov rbp, rsp");
+    Mov::new(RBP, RSP).print();
     println!("  sub rsp, {}", 8 * 26);
 
     for node in nodes {
@@ -26,7 +28,7 @@ fn main() {
     println!("  pop rax");
 
     // エピローグ
-    println!("  mov rsp, rbp");
+    Mov::new(RSP, RBP).print();
     println!("  pop rbp");
     println!("  ret");
 }
