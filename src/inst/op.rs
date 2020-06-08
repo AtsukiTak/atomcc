@@ -17,6 +17,6 @@ impl Instruction for Mov<Reg64, Reg64> {
     where
         W: std::io::Write,
     {
-        write!(w, "  mov {}, {}", self.dst, self.src)
+        write!(w, "  mov {}, {}\n", self.dst, self.src)
     }
 }
