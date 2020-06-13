@@ -1,5 +1,4 @@
-use super::Instruction;
-use super::Reg64;
+use super::super::{Instruction, Reg64};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Mov<S, D> {

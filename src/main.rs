@@ -1,9 +1,9 @@
+pub mod asm;
 pub mod generator;
-pub mod inst;
 pub mod parser;
 pub mod token;
 
-use inst::{Instruction as _, Mov, Reg64::*};
+use asm::{Instruction as _, Mov, Reg64::*};
 
 fn main() {
     let arg = std::env::args().nth(1).unwrap();
@@ -18,6 +18,7 @@ fn main() {
     // プロローグ
     // 変数26個分の領域を確保する
     println!("  push rbp");
+    Push::new(RBP).print();
     Mov::new(RBP, RSP).print();
     println!("  sub rsp, {}", 8 * 26);
 
