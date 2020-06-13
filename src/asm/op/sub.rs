@@ -6,8 +6,8 @@ pub struct Sub<D, S> {
     src: S,
 }
 
-impl Sub<Reg64, i64> {
-    pub fn new(dst: Reg64, src: i64) -> Self {
+impl<D, S> Sub<D, S> {
+    pub fn new(dst: D, src: S) -> Self {
         Sub { dst, src }
     }
 }

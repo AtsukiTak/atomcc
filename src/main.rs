@@ -29,6 +29,6 @@ fn main() {
 
     // エピローグ
     Mov::new(RSP, RBP).print();
-    println!("  pop rbp");
+    Pop::new(RBP).print();
     println!("  ret");
 }

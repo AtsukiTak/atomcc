@@ -1,4 +1,5 @@
 use crate::{
+    asm::{op::*, reg::Reg64::*, Instruction as _},
     parser::{AssignNode, ExprNode, Node, OpNode},
     token::Op,
 };
@@ -14,17 +15,17 @@ pub fn gen(node: &Node) {
             rhs,
         }) => {
             gen_expr(rhs);
-            println!("  pop rax");
+            Pop::new(RAX).print();
             println!("  mov [rbp - {}], rax", lhs_ident_offset);
         }
 
         Node::Return(expr) => {
             gen_expr(expr);
-            println!("  pop rax");
+            Pop::new(RAX).print();
 
             // エピローグ
-            println!("  mov rsp, rbp");
-            println!("  pop rbp");
+            Mov::new(RSP, RBP).print();
+            Pop::new(RBP).print();
             println!("  ret");
         }
     }
@@ -34,12 +35,12 @@ pub fn gen(node: &Node) {
 pub fn gen_expr(node: &ExprNode) {
     match node {
         // スタックトップに即値を載せる
-        ExprNode::Num(n) => println!("  push {}", n),
+        ExprNode::Num(n) => Push::new(*n as i64).print(),
 
         // スタックトップに変数の値を載せる
         ExprNode::Ident { offset } => {
             println!("  mov rax, [rbp - {}]", offset);
-            println!("  push rax");
+            Push::new(RAX).print();
         }
 
         // スタックトップに計算結果を載せる
@@ -47,8 +48,8 @@ pub fn gen_expr(node: &ExprNode) {
             gen_expr(lhs); // スタックトップに1つ値が残る（ようなコードを生成する）
             gen_expr(rhs); // スタックトップに1つ値が残る（ようなコードを生成する）
 
-            println!("  pop rdi"); // 左ブランチの計算結果をrdiレジスタに記録
-            println!("  pop rax"); // 右ブランチの計算結果をraxレジスタに記録
+            Pop::new(RDI).print(); // 左ブランチの計算結果をrdiレジスタに記録
+            Pop::new(RAX).print(); // 右ブランチの計算結果をraxレジスタに記録
 
             match kind {
                 Op::Add => println!("  add rax, rdi"),
@@ -81,7 +82,7 @@ pub fn gen_expr(node: &ExprNode) {
                 _ => unreachable!(),
             }
 
-            println!("  push rax");
+            Push::new(RAX).print();
         }
     }
 }
