@@ -1,3 +1,5 @@
-pub mod mov;
+mod mov;
+mod push;
 
-pub use mov::*;
+pub use mov::Mov;
+pub use push::Push;
