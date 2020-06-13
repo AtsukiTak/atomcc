@@ -3,7 +3,7 @@ pub mod generator;
 pub mod parser;
 pub mod token;
 
-use asm::{op, Instruction as _, Reg64::*};
+use asm::{op::*, Instruction as _, Reg64::*};
 
 fn main() {
     let arg = std::env::args().nth(1).unwrap();
@@ -17,9 +17,9 @@ fn main() {
 
     // プロローグ
     // 変数26個分の領域を確保する
-    op::Push::new(RBP).print();
-    op::Mov::new(RBP, RSP).print();
-    op::Sub::new(RSP, 8 * 26).print();
+    Push::new(RBP).print();
+    Mov::new(RBP, RSP).print();
+    Sub::new(RSP, 8 * 26).print();
 
     for node in nodes {
         generator::gen(&node);
@@ -28,7 +28,7 @@ fn main() {
     println!("  pop rax");
 
     // エピローグ
-    op::Mov::new(RSP, RBP).print();
+    Mov::new(RSP, RBP).print();
     println!("  pop rbp");
     println!("  ret");
 }
