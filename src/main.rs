@@ -25,7 +25,7 @@ fn main() {
         generator::gen(&node);
     }
 
-    println!("  pop rax");
+    Pop::new(RAX).print();
 
     // エピローグ
     Mov::new(RSP, RBP).print();
