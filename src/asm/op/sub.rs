@@ -1,7 +1,7 @@
 use super::super::{Instruction, Reg64};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Mov<D, S> {
+pub struct Sub<S, D> {
     dst: D,
     src: S,
 }
