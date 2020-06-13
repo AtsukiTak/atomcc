@@ -16,6 +16,6 @@ impl Instruction for Push<Reg64> {
     where
         W: std::io::Write,
     {
-        write!(w, "  push {}", self.dst)
+        write!(w, "  push {}\n", self.dst)
     }
 }
