@@ -19,7 +19,7 @@ fn main() {
     // 変数26個分の領域を確保する
     op::Push::new(RBP).print();
     op::Mov::new(RBP, RSP).print();
-    op::Sub::new(RSP, 8 * 26);
+    op::Sub::new(RSP, 8 * 26).print();
 
     for node in nodes {
         generator::gen(&node);
