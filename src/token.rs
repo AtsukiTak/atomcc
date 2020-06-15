@@ -17,6 +17,8 @@ pub enum TokenKind<'a> {
     Ident(&'a str),
     /// "return" keyword
     Return,
+    /// "if" keyword
+    If,
     /// ";"
     Semi,
 }
@@ -202,6 +204,7 @@ impl<'a> Iterator for TokenIter<'a> {
         if let Some(token) = s.split_whitespace().next() {
             let kind = match token {
                 "return" => TokenKind::Return,
+                "if" => TokenKind::If,
                 ident => TokenKind::Ident(ident),
             };
             let (_, rmn) = s.split_at(token.len());
