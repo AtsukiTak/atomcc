@@ -1,5 +1,5 @@
 use crate::{
-    asm::{op::*, reg::Reg64::*, Instruction as _},
+    asm::{op::*, reg::Reg64::*, Addr, Instruction as _},
     parser::{AssignNode, ExprNode, Node, OpNode},
     token::Op,
 };
@@ -16,7 +16,7 @@ pub fn gen(node: &Node) {
         }) => {
             gen_expr(rhs);
             Pop(RAX).print();
-            println!("  mov [rbp - {}], rax", lhs_ident_offset);
+            Mov(Addr(RBP) - *lhs_ident_offset as i64, RAX).print();
         }
 
         Node::Return(expr) => {
@@ -39,7 +39,7 @@ pub fn gen_expr(node: &ExprNode) {
 
         // スタックトップに変数の値を載せる
         ExprNode::Ident { offset } => {
-            println!("  mov rax, [rbp - {}]", offset);
+            Mov(RAX, Addr(RBP) - *offset as i64).print();
             Push(RAX).print();
         }
 

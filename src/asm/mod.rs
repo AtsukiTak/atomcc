@@ -1,6 +1,8 @@
+pub mod addr;
 pub mod op;
 pub mod reg;
 
+pub use addr::Addr;
 pub use op::*;
 pub use reg::*;
 
