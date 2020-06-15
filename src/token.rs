@@ -127,11 +127,28 @@ impl<'a> Token<'a> {
 
 impl<'a> TokenIter<'a> {
     pub fn peek(&self) -> Option<Token<'a>> {
-        self.parse_inner().map(|(token, _)| token)
+        let mut copied = *self;
+        copied.next()
     }
 
-    fn parse_inner(&self) -> Option<(Token<'a>, &'a str)> {
-        let s = self.s.trim_start();
+    fn update_s(&mut self, next_s: &'a str) {
+        self.pos += self.s.len() - next_s.len();
+        self.s = next_s;
+    }
+
+    pub fn exit_with_err_msg(&self, msg: &'static str) -> ! {
+        exit_with_err_msg(self.origin, self.pos, msg)
+    }
+}
+
+impl<'a> Iterator for TokenIter<'a> {
+    type Item = Token<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.update_s(self.s.trim_start());
+
+        let s = self.s;
+
         if s.is_empty() {
             return None;
         }
@@ -147,7 +164,8 @@ impl<'a> TokenIter<'a> {
                 _ => None,
             } {
                 let token = Token::new(kind, self.origin, self.pos);
-                return Some((token, rmn));
+                self.update_s(rmn);
+                return Some(token);
             }
         }
 
@@ -167,52 +185,32 @@ impl<'a> TokenIter<'a> {
             _ => None,
         } {
             let token = Token::new(kind, self.origin, self.pos);
-            return Some((token, rmn));
+            self.update_s(rmn);
+            return Some(token);
         }
 
         // 数値リテラルを調べる
-        let (digit_s, remain_s) = split_digit(s);
+        let (digit_s, rmn) = split_digit(s);
         if !digit_s.is_empty() {
             let digit = usize::from_str_radix(digit_s, 10).unwrap();
             let token = Token::new_num(digit, self.origin, self.pos);
-            return Some((token, remain_s));
+            self.update_s(rmn);
+            return Some(token);
         }
 
         // キーワード/識別子を調べる
         if let Some(token) = s.split_whitespace().next() {
             let kind = match token {
                 "return" => TokenKind::Return,
-                _ => TokenKind::Ident(token),
+                ident => TokenKind::Ident(ident),
             };
             let (_, rmn) = s.split_at(token.len());
             let token = Token::new(kind, self.origin, self.pos);
-            return Some((token, rmn));
+            self.update_s(rmn);
+            return Some(token);
         }
 
         self.exit_with_err_msg("Unable to tokenize")
-    }
-
-    fn update_s(&mut self, next_s: &'a str) {
-        self.pos += self.s.len() - next_s.len();
-        self.s = next_s;
-    }
-
-    pub fn exit_with_err_msg(&self, msg: &'static str) -> ! {
-        exit_with_err_msg(self.origin, self.pos, msg)
-    }
-}
-
-impl<'a> Iterator for TokenIter<'a> {
-    type Item = Token<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.parse_inner() {
-            None => None,
-            Some((token, next_s)) => {
-                self.update_s(next_s);
-                Some(token)
-            }
-        }
     }
 }
 
