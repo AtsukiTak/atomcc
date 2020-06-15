@@ -15,17 +15,17 @@ pub fn gen(node: &Node) {
             rhs,
         }) => {
             gen_expr(rhs);
-            Pop::new(RAX).print();
+            Pop(RAX).print();
             println!("  mov [rbp - {}], rax", lhs_ident_offset);
         }
 
         Node::Return(expr) => {
             gen_expr(expr);
-            Pop::new(RAX).print();
+            Pop(RAX).print();
 
             // エピローグ
-            Mov::new(RSP, RBP).print();
-            Pop::new(RBP).print();
+            Mov(RSP, RBP).print();
+            Pop(RBP).print();
             println!("  ret");
         }
     }
@@ -35,12 +35,12 @@ pub fn gen(node: &Node) {
 pub fn gen_expr(node: &ExprNode) {
     match node {
         // スタックトップに即値を載せる
-        ExprNode::Num(n) => Push::new(*n as i64).print(),
+        ExprNode::Num(n) => Push(*n as i64).print(),
 
         // スタックトップに変数の値を載せる
         ExprNode::Ident { offset } => {
             println!("  mov rax, [rbp - {}]", offset);
-            Push::new(RAX).print();
+            Push(RAX).print();
         }
 
         // スタックトップに計算結果を載せる
@@ -48,12 +48,12 @@ pub fn gen_expr(node: &ExprNode) {
             gen_expr(lhs); // スタックトップに1つ値が残る（ようなコードを生成する）
             gen_expr(rhs); // スタックトップに1つ値が残る（ようなコードを生成する）
 
-            Pop::new(RDI).print(); // 左ブランチの計算結果をrdiレジスタに記録
-            Pop::new(RAX).print(); // 右ブランチの計算結果をraxレジスタに記録
+            Pop(RDI).print(); // 左ブランチの計算結果をrdiレジスタに記録
+            Pop(RAX).print(); // 右ブランチの計算結果をraxレジスタに記録
 
             match kind {
                 Op::Add => println!("  add rax, rdi"),
-                Op::Sub => println!("  sub rax, rdi"),
+                Op::Sub => Sub(RAX, RDI).print(),
                 Op::Mul => println!("  imul rax, rdi"),
                 Op::Div => {
                     println!("  cqo");
@@ -82,7 +82,7 @@ pub fn gen_expr(node: &ExprNode) {
                 _ => unreachable!(),
             }
 
-            Push::new(RAX).print();
+            Push(RAX).print();
         }
     }
 }
