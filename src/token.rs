@@ -194,9 +194,7 @@ impl<'a> Iterator for TokenIter<'a> {
         }
 
         // 数値リテラルを調べる
-        let (digit_s, rmn) = split_digit(s);
-        if !digit_s.is_empty() {
-            let digit = usize::from_str_radix(digit_s, 10).unwrap();
+        if let Some((digit, rmn)) = split_digit(s) {
             let token = Token::new_num(digit, self.origin, self.pos);
             self.update_s(rmn);
             return Some(token);
@@ -220,9 +218,14 @@ impl<'a> Iterator for TokenIter<'a> {
     }
 }
 
-fn split_digit(s: &str) -> (&str, &str) {
-    let first_non_num_idx = s.find(|c| !char::is_numeric(c)).unwrap_or(s.len());
-    s.split_at(first_non_num_idx)
+fn split_digit(s: &str) -> Option<(usize, &str)> {
+    let first_non_num_idx = s.find(|c| !char::is_digit(c, 10)).unwrap_or(s.len());
+    if first_non_num_idx == 0 {
+        None
+    } else {
+        let (digit_s, rmn) = s.split_at(first_non_num_idx);
+        Some((usize::from_str_radix(digit_s, 10).unwrap(), rmn))
+    }
 }
 
 /// Print error messages such as
