@@ -1,6 +1,7 @@
 use crate::token::{Op, Par, Token, TokenIter, TokenKind};
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
 pub enum Node {
     Assign(AssignNode),
     Expr(ExprNode),
@@ -9,11 +10,13 @@ pub enum Node {
     IfElse(IfElseNode),
 }
 
+#[derive(Debug, Clone)]
 pub struct AssignNode {
     pub lhs_ident_offset: usize,
     pub rhs: ExprNode,
 }
 
+#[derive(Debug, Clone)]
 pub enum ExprNode {
     /// 末端Node
     Num(usize),
@@ -24,17 +27,20 @@ pub enum ExprNode {
     Op(OpNode),
 }
 
+#[derive(Debug, Clone)]
 pub struct OpNode {
     pub kind: Op,
     pub lhs: Box<ExprNode>,
     pub rhs: Box<ExprNode>,
 }
 
+#[derive(Debug, Clone)]
 pub struct IfNode {
     pub expr: ExprNode,
     pub stmt: Box<Node>,
 }
 
+#[derive(Debug, Clone)]
 pub struct IfElseNode {
     pub expr: ExprNode,
     pub if_stmt: Box<Node>,
@@ -170,6 +176,7 @@ impl<'a> Parser<'a> {
                         kind: TokenKind::Else,
                         ..
                     }) => {
+                        let _ = tokens.next();
                         let else_stmt = self.parse_stmt(tokens);
                         Node::IfElse(IfElseNode {
                             expr,

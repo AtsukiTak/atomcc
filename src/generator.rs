@@ -59,7 +59,7 @@ impl Generator {
 
                 // 等しければ一連のコードの終わりにjumpする
                 // つまり、以下の処理をスキップする
-                let end_label = format!(".Lend{}", self.new_label_num());
+                let end_label = format!("Lend{}", self.new_label_num());
                 println!("  je {}", end_label);
 
                 // stmtを評価する
@@ -67,7 +67,7 @@ impl Generator {
                 self.gen(stmt);
 
                 // ジャンプ先
-                println!("{}", end_label);
+                println!("{}:", end_label);
             }
 
             Node::IfElse(IfElseNode {
@@ -85,7 +85,7 @@ impl Generator {
                 println!("  cmp rax, 0");
 
                 // 等しければ `else_label` にjumpする
-                let else_label = format!(".Lelse{}", self.new_label_num());
+                let else_label = format!("Lelse{}", self.new_label_num());
                 println!("  je {}", else_label);
 
                 // 評価結果がtrueのときに実行されるstmt
@@ -93,17 +93,17 @@ impl Generator {
 
                 // 実行が終わったら `end_label` にjumpする
                 // つまりelseのstmtをスキップする
-                let end_label = format!(".Lend{}", self.new_label_num());
+                let end_label = format!("Lend{}", self.new_label_num());
                 println!("  jmp {}", end_label);
 
                 // else_labelのジャンプ先
-                println!("{}", else_label);
+                println!("{}:", else_label);
 
                 // 評価結果がfalseのときに実行されるstmt
                 self.gen(else_stmt);
 
                 // end_labelのジャンプ先
-                println!("{}", end_label);
+                println!("{}:", end_label);
             }
         }
     }
