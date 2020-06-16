@@ -21,8 +21,9 @@ fn main() {
     Mov(RBP, RSP).print();
     Sub(RSP, 8 * 26).print();
 
+    let mut generator = generator::Generator::new();
     for node in nodes {
-        generator::gen(&node);
+        generator.gen(&node);
     }
 
     Pop(RAX).print();
