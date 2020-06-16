@@ -5,6 +5,8 @@ pub enum Node {
     Assign(AssignNode),
     Expr(ExprNode),
     Return(ExprNode),
+    If(IfNode),
+    IfElse(IfElseNode),
 }
 
 pub struct AssignNode {
@@ -26,6 +28,17 @@ pub struct OpNode {
     pub kind: Op,
     pub lhs: Box<ExprNode>,
     pub rhs: Box<ExprNode>,
+}
+
+pub struct IfNode {
+    pub expr: ExprNode,
+    pub stmt: Box<Node>,
+}
+
+pub struct IfElseNode {
+    pub expr: ExprNode,
+    pub if_stmt: Box<Node>,
+    pub else_stmt: Box<Node>,
 }
 
 impl ExprNode {
@@ -74,7 +87,9 @@ impl<'a> Parser<'a> {
     }
 
     /// > program       = stmt*
-    /// > stmt          = assign ";" | "return" expr ";"
+    /// > stmt          = assign ";"
+    ///     | "return" expr ";"
+    ///     | "if" "(" expr ")" stmt ("else" stmt)?
     /// > assign        = (ident "=")? expr
     /// > expr          = equality
     /// > equality      = relational ("==" relational | "!=" relational)*
@@ -90,7 +105,7 @@ impl<'a> Parser<'a> {
 
     /// > program       = stmt*
     ///
-    /// で表現される記号programをパースする関数。
+    /// で表現される非終端記号programをパースする関数。
     pub fn parse_program(&mut self, tokens: &mut TokenIter<'a>) -> Vec<Node> {
         let mut nodes = Vec::new();
         while let Some(_) = tokens.peek() {
@@ -99,28 +114,90 @@ impl<'a> Parser<'a> {
         nodes
     }
 
-    /// > stmt          = assign ";" | "return" expr ";"
+    /// > stmt          = assign ";"
+    ///     | "return" expr ";"
+    ///     | "if" "(" expr ")" stmt ("else" stmt)?
     ///
-    /// で表現される記号stmtをパースする関数。
+    /// で表現される非終端記号stmtをパースする関数。
     pub fn parse_stmt(&mut self, tokens: &mut TokenIter<'a>) -> Node {
-        // TokenIterが"return" から始まるかチェックする
-        let node = if let Some(Token {
-            kind: TokenKind::Return,
-            ..
-        }) = tokens.peek()
-        {
-            tokens.next();
-            Node::Return(self.parse_expr(tokens))
-        } else {
-            self.parse_assign(tokens)
-        };
+        match tokens.peek() {
+            // "return" から始まるとき
+            Some(Token {
+                kind: TokenKind::Return,
+                ..
+            }) => {
+                let _ = tokens.next();
+                let node = Node::Return(self.parse_expr(tokens));
+                self.parse_semi(tokens);
+                node
+            }
+            // "if" から始まるとき
+            Some(Token {
+                kind: TokenKind::If,
+                ..
+            }) => {
+                let _ = tokens.next();
 
-        // 次のTokenがセミコロンかチェックする
+                // 次のTokenが "(" であることを確認
+                match tokens.next() {
+                    Some(Token {
+                        kind: TokenKind::Par(Par::Left),
+                        ..
+                    }) => {}
+                    Some(token) => token.exit_with_err_msg("expect \"(\" but found another"),
+                    None => tokens.exit_with_err_msg("expected \"(\" but found EOF"),
+                };
+
+                // expr をパース
+                let expr = self.parse_expr(tokens);
+
+                // 次のTokenが ")" であることを確認
+                match tokens.next() {
+                    Some(Token {
+                        kind: TokenKind::Par(Par::Right),
+                        ..
+                    }) => {}
+                    Some(token) => token.exit_with_err_msg("expect \"(\" but found another"),
+                    None => tokens.exit_with_err_msg("expected \"(\" but found EOF"),
+                }
+
+                // stmt をパース
+                let stmt = self.parse_stmt(tokens);
+
+                // 次のTokenが "else" かどうか確認
+                match tokens.peek() {
+                    Some(Token {
+                        kind: TokenKind::Else,
+                        ..
+                    }) => {
+                        let else_stmt = self.parse_stmt(tokens);
+                        Node::IfElse(IfElseNode {
+                            expr,
+                            if_stmt: Box::new(stmt),
+                            else_stmt: Box::new(else_stmt),
+                        })
+                    }
+                    _ => Node::If(IfNode {
+                        expr,
+                        stmt: Box::new(stmt),
+                    }),
+                }
+            }
+            _ => {
+                let node = self.parse_assign(tokens);
+                self.parse_semi(tokens);
+                node
+            }
+        }
+    }
+
+    // 次のTokenがセミコロンかチェックする
+    fn parse_semi(&mut self, tokens: &mut TokenIter<'a>) {
         match tokens.next() {
             Some(Token {
                 kind: TokenKind::Semi,
                 ..
-            }) => node,
+            }) => {}
             Some(t) => t.exit_with_err_msg("expected \";\" but found another"),
             None => tokens.exit_with_err_msg("expected \";\" but found EOF"),
         }
