@@ -1,11 +1,11 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token<'a> {
     pub kind: TokenKind<'a>,
     pub origin: &'a str,
     pub pos: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenKind<'a> {
     /// 演算子
     Op(Op),
@@ -25,7 +25,7 @@ pub enum TokenKind<'a> {
     Semi,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Op {
     // 算術演算子
     Add, // +
@@ -46,7 +46,7 @@ pub enum Op {
 }
 
 /// Parentheses
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Par {
     Left,
     Right,

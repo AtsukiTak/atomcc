@@ -119,7 +119,9 @@ fn split_digit(s: &str) -> Option<(usize, &str)> {
 fn split_delim(s: &str) -> (&str, &str) {
     assert!(s.len() != 0);
 
-    let idx = s.find(&[' ', '{', '}', '(', ')'][..]).unwrap_or(s.len());
+    let idx = s
+        .find(&[' ', '{', '}', '(', ')', '=', ';', '+', '-', '*', '/'][..])
+        .unwrap_or(s.len());
     if idx == 0 {
         // '{' などを返す
         s.split_at(1)
@@ -136,4 +138,61 @@ pub fn exit_with_err_msg(origin: &str, pos: usize, msg: &str) -> ! {
     let leading_spaces = " ".repeat(pos);
     eprintln!("{}^ {}", leading_spaces, msg);
     std::process::exit(1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use TokenKind as TK;
+
+    fn assert_tk<'a>(input: &'a str, expected: Vec<TokenKind<'a>>) {
+        let found = tokenize(input).map(|token| token.kind).collect::<Vec<_>>();
+        assert_eq!(found, expected);
+    }
+
+    #[test]
+    fn tokenizer_tests() {
+        assert_tk("", vec![]);
+        assert_tk("   ", vec![]);
+        assert_tk("42", vec![TK::Num(42)]);
+        assert_tk("   42   ", vec![TK::Num(42)]);
+        assert_tk("42+2", vec![TK::Num(42), TK::Op(Op::Add), TK::Num(2)]);
+        assert_tk("ho_ge", vec![TK::Ident("ho_ge")]);
+        assert_tk(
+            "hoge+42",
+            vec![TK::Ident("hoge"), TK::Op(Op::Add), TK::Num(42)],
+        );
+        assert_tk(
+            "hoge=42+2",
+            vec![
+                TK::Ident("hoge"),
+                TK::Op(Op::Assign),
+                TK::Num(42),
+                TK::Op(Op::Add),
+                TK::Num(2),
+            ],
+        );
+        assert_tk(
+            "hoge=42+2",
+            vec![
+                TK::Ident("hoge"),
+                TK::Op(Op::Assign),
+                TK::Num(42),
+                TK::Op(Op::Add),
+                TK::Num(2),
+            ],
+        );
+        assert_tk(
+            "if(42==42)",
+            vec![
+                TK::If,
+                TK::Par(Par::Left),
+                TK::Num(42),
+                TK::Op(Op::Eq),
+                TK::Num(42),
+                TK::Par(Par::Right),
+            ],
+        );
+        assert_tk("hoge;", vec![TK::Ident("hoge"), TK::Semi]);
+    }
 }
