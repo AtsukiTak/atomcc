@@ -1,22 +1,22 @@
 use crate::token::{Op, Par, Token, TokenKind};
 
 #[derive(Debug, Clone, Copy)]
-pub struct TokenIter<'a> {
+pub struct TokenStream<'a> {
     origin: &'a str,
     s: &'a str,
     // 現在の文字が全体の何文字目か
     pos: usize,
 }
 
-pub fn tokenize<'a>(s: &'a str) -> TokenIter<'a> {
-    TokenIter {
+pub fn tokenize<'a>(s: &'a str) -> TokenStream<'a> {
+    TokenStream {
         origin: s,
         s,
         pos: 0,
     }
 }
 
-impl<'a> TokenIter<'a> {
+impl<'a> TokenStream<'a> {
     pub fn peek(&self) -> Option<Token<'a>> {
         let mut copied = *self;
         copied.next()
@@ -32,7 +32,7 @@ impl<'a> TokenIter<'a> {
     }
 }
 
-impl<'a> Iterator for TokenIter<'a> {
+impl<'a> Iterator for TokenStream<'a> {
     type Item = Token<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {

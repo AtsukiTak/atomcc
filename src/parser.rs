@@ -1,5 +1,5 @@
 use crate::token::{Op, Par, Token, TokenKind};
-use crate::tokenizer::TokenIter;
+use crate::tokenizer::TokenStream;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -106,14 +106,14 @@ impl<'a> Parser<'a> {
     /// > primary       = num | ident | "(" expr ")"
     ///
     /// で表現される文法をパースする関数。
-    pub fn parse(&mut self, tokens: &mut TokenIter<'a>) -> Vec<Node> {
+    pub fn parse(&mut self, tokens: &mut TokenStream<'a>) -> Vec<Node> {
         self.parse_program(tokens)
     }
 
     /// > program       = stmt*
     ///
     /// で表現される非終端記号programをパースする関数。
-    pub fn parse_program(&mut self, tokens: &mut TokenIter<'a>) -> Vec<Node> {
+    pub fn parse_program(&mut self, tokens: &mut TokenStream<'a>) -> Vec<Node> {
         let mut nodes = Vec::new();
         while let Some(_) = tokens.peek() {
             nodes.push(self.parse_stmt(tokens))
@@ -126,7 +126,7 @@ impl<'a> Parser<'a> {
     ///     | "if" "(" expr ")" stmt ("else" stmt)?
     ///
     /// で表現される非終端記号stmtをパースする関数。
-    pub fn parse_stmt(&mut self, tokens: &mut TokenIter<'a>) -> Node {
+    pub fn parse_stmt(&mut self, tokens: &mut TokenStream<'a>) -> Node {
         match tokens.peek() {
             // "return" から始まるとき
             Some(Token {
@@ -200,7 +200,7 @@ impl<'a> Parser<'a> {
     }
 
     // 次のTokenがセミコロンかチェックする
-    fn parse_semi(&mut self, tokens: &mut TokenIter<'a>) {
+    fn parse_semi(&mut self, tokens: &mut TokenStream<'a>) {
         match tokens.next() {
             Some(Token {
                 kind: TokenKind::Semi,
@@ -214,8 +214,8 @@ impl<'a> Parser<'a> {
     /// > assign        = (ident "=")? expr
     ///
     /// で表現される記号assignをパースする関数。
-    pub fn parse_assign(&mut self, tokens: &mut TokenIter<'a>) -> Node {
-        // 与えられたTokenIterが (ident "=") で始まるかチェックする
+    pub fn parse_assign(&mut self, tokens: &mut TokenStream<'a>) -> Node {
+        // 与えられたTokenStreamが (ident "=") で始まるかチェックする
         let mut tokens2 = *tokens;
         match (tokens2.next(), tokens2.next()) {
             (
@@ -249,14 +249,14 @@ impl<'a> Parser<'a> {
     /// > expr          = equality
     ///
     /// で表現される記号exprをパースする関数。
-    pub fn parse_expr(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
+    pub fn parse_expr(&mut self, tokens: &mut TokenStream<'a>) -> ExprNode {
         self.parse_equality(tokens)
     }
 
     /// > equality      = relational ("==" relational | "!=" relational)*
     ///
     /// で表現される記号equalityをパースする関数。
-    pub fn parse_equality(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
+    pub fn parse_equality(&mut self, tokens: &mut TokenStream<'a>) -> ExprNode {
         let mut node = self.parse_relational(tokens);
         while let Some(token) = tokens.peek() {
             let op = match token.op() {
@@ -276,7 +276,7 @@ impl<'a> Parser<'a> {
     /// > relational    = ("<" add | "<=" add | ">" add | ">=" add)*
     ///
     /// で表現される記号relationalをパースする関数。
-    pub fn parse_relational(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
+    pub fn parse_relational(&mut self, tokens: &mut TokenStream<'a>) -> ExprNode {
         let mut node = self.parse_add(tokens);
         while let Some(token) = tokens.peek() {
             let (op, reverse) = match token.op() {
@@ -301,7 +301,7 @@ impl<'a> Parser<'a> {
     /// > add           = mul ("+" mul | "-" mul)*
     ///
     /// で表現される記号addをパースする関数。
-    pub fn parse_add(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
+    pub fn parse_add(&mut self, tokens: &mut TokenStream<'a>) -> ExprNode {
         let mut node = self.parse_mul(tokens);
         while let Some(token) = tokens.peek() {
             let op = match token.op() {
@@ -321,7 +321,7 @@ impl<'a> Parser<'a> {
     /// > mul       = unary ("*" unary | "/" unary)*
     ///
     /// で表現される記号mulをパースする関数。
-    pub fn parse_mul(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
+    pub fn parse_mul(&mut self, tokens: &mut TokenStream<'a>) -> ExprNode {
         let mut node = self.parse_unary(tokens);
         while let Some(token) = tokens.peek() {
             let op = match token.op() {
@@ -340,7 +340,7 @@ impl<'a> Parser<'a> {
     /// > unary     = ("+" | "-")? primary
     ///
     /// で表現される記号unaryをパースする関数。
-    pub fn parse_unary(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
+    pub fn parse_unary(&mut self, tokens: &mut TokenStream<'a>) -> ExprNode {
         match tokens.peek().and_then(|token| token.op()) {
             Some(Op::Add) => {
                 let _ = tokens.next();
@@ -357,7 +357,7 @@ impl<'a> Parser<'a> {
     /// > primary   = num | ident | "(" expr ")"
     ///
     /// で表現される記号primaryをパースする関数。
-    pub fn parse_primary(&mut self, tokens: &mut TokenIter<'a>) -> ExprNode {
+    pub fn parse_primary(&mut self, tokens: &mut TokenStream<'a>) -> ExprNode {
         let token = tokens.next().unwrap_or_else(|| {
             tokens.exit_with_err_msg("Unexpected EOF. number, ident or \"(\" is expected")
         });
