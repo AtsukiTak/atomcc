@@ -1,4 +1,5 @@
-use crate::token::{Op, Par, Token, TokenIter, TokenKind};
+use crate::token::{Op, Par, Token, TokenKind};
+use crate::tokenizer::TokenIter;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
