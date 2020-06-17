@@ -201,23 +201,21 @@ impl<'a> Iterator for TokenIter<'a> {
         }
 
         // キーワード/識別子を調べる
-        if let Some(token) = s.split_whitespace().next() {
-            let kind = match token {
-                "return" => TokenKind::Return,
-                "if" => TokenKind::If,
-                "else" => TokenKind::Else,
-                ident => TokenKind::Ident(ident),
-            };
-            let (_, rmn) = s.split_at(token.len());
-            let token = Token::new(kind, self.origin, self.pos);
-            self.update_s(rmn);
-            return Some(token);
-        }
-
-        self.exit_with_err_msg("Unable to tokenize")
+        let (token, rmn) = split_delim(s);
+        let kind = match token {
+            "return" => TokenKind::Return,
+            "if" => TokenKind::If,
+            "else" => TokenKind::Else,
+            ident => TokenKind::Ident(ident),
+        };
+        let token = Token::new(kind, self.origin, self.pos);
+        self.update_s(rmn);
+        return Some(token);
     }
 }
 
+// 先頭から数値を読み込む
+// "42world" -> (42, "world")
 fn split_digit(s: &str) -> Option<(usize, &str)> {
     let first_non_num_idx = s.find(|c| !char::is_digit(c, 10)).unwrap_or(s.len());
     if first_non_num_idx == 0 {
@@ -225,6 +223,21 @@ fn split_digit(s: &str) -> Option<(usize, &str)> {
     } else {
         let (digit_s, rmn) = s.split_at(first_non_num_idx);
         Some((usize::from_str_radix(digit_s, 10).unwrap(), rmn))
+    }
+}
+
+// 特定のdelimiterで区切った文字列を返す。
+// delimiterは、
+// - whitespace, "{", "}", "(", ")"
+fn split_delim(s: &str) -> (&str, &str) {
+    assert!(s.len() != 0);
+
+    let idx = s.find(&[' ', '{', '}', '(', ')'][..]).unwrap_or(s.len());
+    if idx == 0 {
+        // '{' などを返す
+        s.split_at(1)
+    } else {
+        s.split_at(idx)
     }
 }
 

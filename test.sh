@@ -39,5 +39,6 @@ assert 42 'foo = 40; foo + 2;'
 assert 42 'return 42;'
 assert 42 'foo = 11; return foo + 31;'
 assert 22 'foo = 11; if ( foo == 11 ) 22; else 42;'
+assert 22 'foo = 11; if(foo == 11) 22; else 42;'
 
 echo OK
