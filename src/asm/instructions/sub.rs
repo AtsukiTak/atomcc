@@ -4,18 +4,14 @@ use super::super::{reg::Reg64, Asm};
 pub struct Sub<T1, T2>(pub T1, pub T2);
 
 impl Asm for Sub<Reg64, i64> {
-    fn write<W>(&self, w: &mut W) -> std::io::Result<()>
-    where
-        W: std::io::Write,
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()>
     {
         write!(w, "  sub {}, {}\n", self.0, self.1)
     }
 }
 
 impl Asm for Sub<Reg64, Reg64> {
-    fn write<W>(&self, w: &mut W) -> std::io::Result<()>
-    where
-        W: std::io::Write,
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()>
     {
         write!(w, "  sub {}, {}\n", self.0, self.1)
     }

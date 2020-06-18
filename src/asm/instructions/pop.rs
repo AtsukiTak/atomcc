@@ -4,9 +4,7 @@ use super::super::{reg::Reg64, Asm};
 pub struct Pop<T>(pub T);
 
 impl Asm for Pop<Reg64> {
-    fn write<W>(&self, w: &mut W) -> std::io::Result<()>
-    where
-        W: std::io::Write,
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()>
     {
         write!(w, "  pop {}\n", self.0)
     }
