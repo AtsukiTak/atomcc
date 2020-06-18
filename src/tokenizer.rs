@@ -155,9 +155,11 @@ mod tests {
         assert_tk("", vec![]);
         assert_tk("   ", vec![]);
         assert_tk("42", vec![TK::Num(42)]);
+        assert_tk("-42", vec![TK::Op(Op::Sub), TK::Num(42)]);
         assert_tk("   42   ", vec![TK::Num(42)]);
         assert_tk("42+2", vec![TK::Num(42), TK::Op(Op::Add), TK::Num(2)]);
         assert_tk("ho_ge", vec![TK::Ident("ho_ge")]);
+        assert_tk("hoge42", vec![TK::Ident("hoge42")]);
         assert_tk(
             "hoge+42",
             vec![TK::Ident("hoge"), TK::Op(Op::Add), TK::Num(42)],
