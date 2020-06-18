@@ -21,6 +21,8 @@ pub enum TokenKind<'a> {
     If,
     /// "else" keyword
     Else,
+    /// "while" keyword
+    While,
     /// ";"
     Semi,
 }

@@ -93,6 +93,7 @@ impl<'a> Iterator for TokenStream<'a> {
             "return" => TokenKind::Return,
             "if" => TokenKind::If,
             "else" => TokenKind::Else,
+            "while" => TokenKind::Else,
             ident => TokenKind::Ident(ident),
         };
         let token = Token::new(kind, self.origin, self.pos);
