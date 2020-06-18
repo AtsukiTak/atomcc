@@ -1,9 +1,13 @@
-use super::super::{addr::Address, reg::Reg64, Instruction};
+use super::super::{addr::Address, reg::Reg64, Asm};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Mov<T1, T2>(pub T1, pub T2);
 
-impl Instruction for Mov<Reg64, Reg64> {
+pub fn mov<T1, T2>(t1: T1, t2: T2) -> Mov<T1, T2> {
+    Mov(t1, t2)
+}
+
+impl Asm for Mov<Reg64, Reg64> {
     fn write<W>(&self, w: &mut W) -> std::io::Result<()>
     where
         W: std::io::Write,
@@ -12,7 +16,7 @@ impl Instruction for Mov<Reg64, Reg64> {
     }
 }
 
-impl<A> Instruction for Mov<Reg64, A>
+impl<A> Asm for Mov<Reg64, A>
 where
     A: Address,
 {
@@ -24,7 +28,7 @@ where
     }
 }
 
-impl<A> Instruction for Mov<A, Reg64>
+impl<A> Asm for Mov<A, Reg64>
 where
     A: Address,
 {

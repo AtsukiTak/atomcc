@@ -1,9 +1,9 @@
-use super::super::{reg::Reg64, Instruction};
+use super::super::{reg::Reg64, Asm};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Push<T>(pub T);
 
-impl Instruction for Push<Reg64> {
+impl Asm for Push<Reg64> {
     fn write<W>(&self, w: &mut W) -> std::io::Result<()>
     where
         W: std::io::Write,
@@ -12,7 +12,7 @@ impl Instruction for Push<Reg64> {
     }
 }
 
-impl Instruction for Push<i64> {
+impl Asm for Push<i64> {
     fn write<W>(&self, w: &mut W) -> std::io::Result<()>
     where
         W: std::io::Write,
