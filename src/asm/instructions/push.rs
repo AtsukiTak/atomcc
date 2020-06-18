@@ -1,22 +1,22 @@
-use super::super::{Instruction, Reg64};
+use super::super::{reg::Reg64, Instruction};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Sub<T1, T2>(pub T1, pub T2);
+pub struct Push<T>(pub T);
 
-impl Instruction for Sub<Reg64, i64> {
+impl Instruction for Push<Reg64> {
     fn write<W>(&self, w: &mut W) -> std::io::Result<()>
     where
         W: std::io::Write,
     {
-        write!(w, "  sub {}, {}\n", self.0, self.1)
+        write!(w, "  push {}\n", self.0)
     }
 }
 
-impl Instruction for Sub<Reg64, Reg64> {
+impl Instruction for Push<i64> {
     fn write<W>(&self, w: &mut W) -> std::io::Result<()>
     where
         W: std::io::Write,
     {
-        write!(w, "  sub {}, {}\n", self.0, self.1)
+        write!(w, "  push {}\n", self.0)
     }
 }

@@ -1,4 +1,4 @@
-use super::Reg64;
+use super::reg::Reg64;
 use std::fmt::{Display, Formatter, Result};
 
 pub struct Addr<T>(pub T);

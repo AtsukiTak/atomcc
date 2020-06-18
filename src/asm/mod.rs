@@ -1,10 +1,18 @@
 pub mod addr;
-pub mod op;
+pub mod instructions;
 pub mod reg;
 
 pub use addr::Addr;
-pub use op::*;
-pub use reg::*;
+pub use reg::{Reg16, Reg32, Reg64, Reg8};
+
+/// This represents a single line of assembly code.
+pub enum Asm {
+    Arbitrary(String),
+}
+
+pub fn arbitraty(s: impl Into<String>) -> Asm {
+    Asm::Arbitrary(s.into())
+}
 
 pub trait Instruction {
     fn write<W>(&self, w: &mut W) -> std::io::Result<()>

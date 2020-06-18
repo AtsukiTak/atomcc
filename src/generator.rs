@@ -1,5 +1,5 @@
 use crate::{
-    asm::{op::*, reg::Reg64::*, Addr, Instruction as _},
+    asm::{instructions::*, Addr, Instruction as _, Reg64::*},
     parser::{AssignNode, ExprNode, IfElseNode, IfNode, Node, OpNode},
     token::Op,
 };

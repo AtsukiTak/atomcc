@@ -4,7 +4,7 @@ pub mod parser;
 pub mod token;
 pub mod tokenizer;
 
-use asm::{op::*, Instruction as _, Reg64::*};
+use asm::{instructions::*, Instruction as _, Reg64::*};
 
 fn main() {
     let arg = std::env::args().nth(1).unwrap();

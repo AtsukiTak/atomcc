@@ -1,4 +1,4 @@
-use super::super::{Instruction, Reg64};
+use super::super::{reg::Reg64, Instruction};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pop<T>(pub T);

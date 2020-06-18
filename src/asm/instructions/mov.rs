@@ -1,4 +1,4 @@
-use super::super::{addr::Address, Instruction, Reg64};
+use super::super::{addr::Address, reg::Reg64, Instruction};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Mov<T1, T2>(pub T1, pub T2);
