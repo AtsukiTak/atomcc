@@ -4,7 +4,7 @@ pub mod parser;
 pub mod token;
 pub mod tokenizer;
 
-use asm::{instructions::*, Asm as _, Reg64::*};
+use asm::{arbitrary, instructions::*, AsmBuf, Reg64::*};
 
 fn main() {
     let arg = std::env::args().nth(1).unwrap();
@@ -13,25 +13,29 @@ fn main() {
 
     let nodes = parser::Parser::new().parse(&mut token_iter);
 
-    println!(".intel_syntax noprefix");
-    println!(".global _main");
-    println!("_main:");
+    let mut asm = AsmBuf::new();
+
+    asm.push(arbitrary(".intel_syntax noprefix"));
+    asm.push(arbitrary(".global _main"));
+    asm.push(arbitrary("_main:"));
 
     // プロローグ
     // 変数26個分の領域を確保する
-    Push(RBP).print();
-    Mov(RBP, RSP).print();
-    Sub(RSP, 8 * 26).print();
+    asm.push(push(RBP));
+    asm.push(mov(RBP, RSP));
+    asm.push(sub(RSP, 8 * 26));
 
     let mut generator = generator::Generator::new();
     for node in nodes {
-        generator.gen(&node);
+        generator.gen(&node, &mut asm);
     }
 
-    Pop(RAX).print();
+    asm.push(pop(RAX));
 
     // エピローグ
-    Mov(RSP, RBP).print();
-    Pop(RBP).print();
-    println!("  ret");
+    asm.push(mov(RSP, RBP));
+    asm.push(pop(RBP));
+    asm.push(arbitrary("  ret"));
+
+    asm.output_stdout().unwrap();
 }

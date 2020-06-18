@@ -1,5 +1,5 @@
 use crate::{
-    asm::{instructions::*, Addr, Asm as _, Reg64::*},
+    asm::{arbitrary, instructions::*, Addr, AsmBuf, Reg64::*},
     parser::{AssignNode, ExprNode, IfElseNode, IfNode, Node, OpNode},
     token::Op,
 };
@@ -20,54 +20,54 @@ impl Generator {
     }
 
     /// １つのstmtを処理するようなコードを生成する
-    pub fn gen(&mut self, node: &Node) {
+    pub fn gen(&mut self, node: &Node, asm_buf: &mut AsmBuf) {
         match node {
-            Node::Expr(expr) => self.gen_expr(expr),
+            Node::Expr(expr) => self.gen_expr(expr, asm_buf),
 
             // ローカル変数にスタックトップの値を代入する
             Node::Assign(AssignNode {
                 lhs_ident_offset,
                 rhs,
             }) => {
-                self.gen_expr(rhs);
-                Pop(RAX).print();
-                Mov(Addr(RBP) - *lhs_ident_offset as i64, RAX).print();
+                self.gen_expr(rhs, asm_buf);
+                asm_buf.push(pop(RAX));
+                asm_buf.push(mov(Addr(RBP) - *lhs_ident_offset as i64, RAX));
             }
 
             Node::Return(expr) => {
                 // 式を評価する（ようなコードを生成する）
-                self.gen_expr(expr);
+                self.gen_expr(expr, asm_buf);
 
                 // 評価結果を取り出す
-                Pop(RAX).print();
+                asm_buf.push(pop(RAX));
 
                 // エピローグ
-                Mov(RSP, RBP).print();
-                Pop(RBP).print();
-                println!("  ret");
+                asm_buf.push(mov(RSP, RBP));
+                asm_buf.push(pop(RBP));
+                asm_buf.push(arbitrary("  ret"));
             }
 
             Node::If(IfNode { expr, stmt }) => {
                 // 式を評価する（ようなコードを生成する）
-                self.gen_expr(expr);
+                self.gen_expr(expr, asm_buf);
 
                 // 評価結果を取り出す
-                Pop(RAX).print();
+                asm_buf.push(pop(RAX));
 
                 // 取り出した値が0と等しいかどうか
-                println!("  cmp rax, 0");
+                asm_buf.push(arbitrary("  cmp rax, 0"));
 
                 // 等しければ一連のコードの終わりにjumpする
                 // つまり、以下の処理をスキップする
                 let end_label = format!("Lend{}", self.new_label_num());
-                println!("  je {}", end_label);
+                asm_buf.push(arbitrary(format!("  je {}", end_label)));
 
                 // stmtを評価する
                 // `expr` の評価結果が0ならこのコードはスキップされる
-                self.gen(stmt);
+                self.gen(stmt, asm_buf);
 
                 // ジャンプ先
-                println!("{}:", end_label);
+                asm_buf.push(arbitrary(format!("{}:", end_label)));
             }
 
             Node::IfElse(IfElseNode {
@@ -76,90 +76,90 @@ impl Generator {
                 else_stmt,
             }) => {
                 // 式を評価する（ようなコードを生成する）
-                self.gen_expr(expr);
+                self.gen_expr(expr, asm_buf);
 
                 // 評価結果を取り出す
-                Pop(RAX).print();
+                asm_buf.push(pop(RAX));
 
                 // 評価結果が0と等しいかどうか
-                println!("  cmp rax, 0");
+                asm_buf.push(arbitrary("  cmp rax, 0"));
 
                 // 等しければ `else_label` にjumpする
                 let else_label = format!("Lelse{}", self.new_label_num());
-                println!("  je {}", else_label);
+                asm_buf.push(arbitrary(format!("  je {}", else_label)));
 
                 // 評価結果がtrueのときに実行されるstmt
-                self.gen(if_stmt);
+                self.gen(if_stmt, asm_buf);
 
                 // 実行が終わったら `end_label` にjumpする
                 // つまりelseのstmtをスキップする
                 let end_label = format!("Lend{}", self.new_label_num());
-                println!("  jmp {}", end_label);
+                asm_buf.push(arbitrary(format!("  jmp {}", end_label)));
 
                 // else_labelのジャンプ先
-                println!("{}:", else_label);
+                asm_buf.push(arbitrary(format!("{}:", else_label)));
 
                 // 評価結果がfalseのときに実行されるstmt
-                self.gen(else_stmt);
+                self.gen(else_stmt, asm_buf);
 
                 // end_labelのジャンプ先
-                println!("{}:", end_label);
+                asm_buf.push(arbitrary(format!("{}:", end_label)));
             }
         }
     }
 
     // スタックトップにexprの結果の値を1つ載せるようなコードを生成する
-    pub fn gen_expr(&mut self, node: &ExprNode) {
+    pub fn gen_expr(&mut self, node: &ExprNode, asm_buf: &mut AsmBuf) {
         match node {
             // スタックトップに即値を載せる
-            ExprNode::Num(n) => Push(*n as i64).print(),
+            ExprNode::Num(n) => asm_buf.push(push(*n as i64)),
 
             // スタックトップに変数の値を載せる
             ExprNode::Ident { offset } => {
-                Mov(RAX, Addr(RBP) - *offset as i64).print();
-                Push(RAX).print();
+                asm_buf.push(mov(RAX, Addr(RBP) - *offset as i64));
+                asm_buf.push(push(RAX));
             }
 
             // スタックトップに計算結果を載せる
             ExprNode::Op(OpNode { kind, lhs, rhs }) => {
-                self.gen_expr(lhs); // スタックトップに1つ値が残る（ようなコードを生成する）
-                self.gen_expr(rhs); // スタックトップに1つ値が残る（ようなコードを生成する）
+                self.gen_expr(lhs, asm_buf); // スタックトップに1つ値が残る（ようなコードを生成する）
+                self.gen_expr(rhs, asm_buf); // スタックトップに1つ値が残る（ようなコードを生成する）
 
-                Pop(RDI).print(); // 左ブランチの計算結果をrdiレジスタに記録
-                Pop(RAX).print(); // 右ブランチの計算結果をraxレジスタに記録
+                asm_buf.push(pop(RDI)); // 左ブランチの計算結果をrdiレジスタに記録
+                asm_buf.push(pop(RAX)); // 右ブランチの計算結果をraxレジスタに記録
 
                 match kind {
-                    Op::Add => println!("  add rax, rdi"),
-                    Op::Sub => Sub(RAX, RDI).print(),
-                    Op::Mul => println!("  imul rax, rdi"),
+                    Op::Add => asm_buf.push(arbitrary("  add rax, rdi")),
+                    Op::Sub => asm_buf.push(sub(RAX, RDI)),
+                    Op::Mul => asm_buf.push(arbitrary("  imul rax, rdi")),
                     Op::Div => {
-                        println!("  cqo");
-                        println!("  idiv rdi");
+                        asm_buf.push(arbitrary("  cqo"));
+                        asm_buf.push(arbitrary("  idiv rdi"));
                     }
                     Op::Eq => {
-                        println!("  cmp rax, rdi");
-                        println!("  sete al");
-                        println!("  movzx rax, al");
+                        asm_buf.push(arbitrary("  cmp rax, rdi"));
+                        asm_buf.push(arbitrary("  sete al"));
+                        asm_buf.push(arbitrary("  movzx rax, al"));
                     }
                     Op::Neq => {
-                        println!("  cmp rax, rdi");
-                        println!("  setne al");
-                        println!("  movzx rax, al");
+                        asm_buf.push(arbitrary("  cmp rax, rdi"));
+                        asm_buf.push(arbitrary("  setne al"));
+                        asm_buf.push(arbitrary("  movzx rax, al"));
                     }
                     Op::Lt => {
-                        println!("  cmp rax, rdi");
-                        println!("  setl al");
-                        println!("  movzx rax, al");
+                        asm_buf.push(arbitrary("  cmp rax, rdi"));
+                        asm_buf.push(arbitrary("  setl al"));
+                        asm_buf.push(arbitrary("  movzx rax, al"));
                     }
                     Op::Lte => {
-                        println!("  cmp rax, rdi");
-                        println!("  setle al");
-                        println!("  movzx rax, al");
+                        asm_buf.push(arbitrary("  cmp rax, rdi"));
+                        asm_buf.push(arbitrary("  setle al"));
+                        asm_buf.push(arbitrary("  movzx rax, al"));
                     }
                     _ => unreachable!(),
                 }
 
-                Push(RAX).print();
+                asm_buf.push(push(RAX));
             }
         }
     }
