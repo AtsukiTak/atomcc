@@ -1,10 +1,4 @@
-pub mod asm;
-pub mod generator;
-pub mod parser;
-pub mod token;
-pub mod tokenizer;
-
-use asm::AsmBuf;
+use atomcc::{asm::AsmBuf, generator, parser, tokenizer};
 
 fn main() {
     let arg = std::env::args().nth(1).unwrap();
