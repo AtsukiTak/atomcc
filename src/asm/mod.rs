@@ -32,6 +32,10 @@ impl AsmBuf {
         self.vec.push(Box::new(asm))
     }
 
+    pub fn append(&mut self, others: &mut AsmBuf) {
+        self.vec.append(&mut others.vec)
+    }
+
     pub fn output<W>(&self, w: &mut W) -> IoResult<()>
     where
         W: Write,
