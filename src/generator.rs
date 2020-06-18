@@ -19,8 +19,42 @@ impl Generator {
         n
     }
 
+    pub fn gen(&mut self, nodes: &[Node], asm_buf: &mut AsmBuf) {
+        self.gen_prelude(asm_buf);
+        self.gen_prologue(26, asm_buf);
+        for node in nodes {
+            self.gen_stmt(node, asm_buf);
+        }
+        // 最後にスタックに残っていた値をRAXレジスタに保存
+        asm_buf.push(pop(RAX));
+        self.gen_epilogue(asm_buf);
+    }
+
+    pub fn gen_prelude(&self, asm_buf: &mut AsmBuf) {
+        asm_buf.push(arbitrary(".intel_syntax noprefix"));
+        asm_buf.push(arbitrary(".global _main"));
+        asm_buf.push(arbitrary("_main:"));
+    }
+
+    pub fn gen_prologue(&self, stack_bytes: i64, asm_buf: &mut AsmBuf) {
+        // ベースポインタの値を避難
+        asm_buf.push(push(RBP));
+        // ベースポインタを、スタックポインタまで移動
+        asm_buf.push(mov(RBP, RSP));
+        // stack領域の確保 (スタックポインタの移動)
+        asm_buf.push(sub(RSP, 8 * stack_bytes));
+    }
+
+    pub fn gen_epilogue(&self, asm_buf: &mut AsmBuf) {
+        // スタックポインタをベースポインタまで移動
+        asm_buf.push(mov(RSP, RBP));
+        // prologueで避難させておいたベースポインタの値を戻す
+        asm_buf.push(pop(RBP));
+        asm_buf.push(arbitrary("  ret"));
+    }
+
     /// １つのstmtを処理するようなコードを生成する
-    pub fn gen(&mut self, node: &Node, asm_buf: &mut AsmBuf) {
+    pub fn gen_stmt(&mut self, node: &Node, asm_buf: &mut AsmBuf) {
         match node {
             Node::Expr(expr) => self.gen_expr(expr, asm_buf),
 
@@ -64,7 +98,7 @@ impl Generator {
 
                 // stmtを評価する
                 // `expr` の評価結果が0ならこのコードはスキップされる
-                self.gen(stmt, asm_buf);
+                self.gen_stmt(stmt, asm_buf);
 
                 // ジャンプ先
                 asm_buf.push(arbitrary(format!("{}:", end_label)));
@@ -89,7 +123,7 @@ impl Generator {
                 asm_buf.push(arbitrary(format!("  je {}", else_label)));
 
                 // 評価結果がtrueのときに実行されるstmt
-                self.gen(if_stmt, asm_buf);
+                self.gen_stmt(if_stmt, asm_buf);
 
                 // 実行が終わったら `end_label` にjumpする
                 // つまりelseのstmtをスキップする
@@ -100,7 +134,7 @@ impl Generator {
                 asm_buf.push(arbitrary(format!("{}:", else_label)));
 
                 // 評価結果がfalseのときに実行されるstmt
-                self.gen(else_stmt, asm_buf);
+                self.gen_stmt(else_stmt, asm_buf);
 
                 // end_labelのジャンプ先
                 asm_buf.push(arbitrary(format!("{}:", end_label)));
