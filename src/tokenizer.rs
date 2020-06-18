@@ -93,7 +93,7 @@ impl<'a> Iterator for TokenStream<'a> {
             "return" => TokenKind::Return,
             "if" => TokenKind::If,
             "else" => TokenKind::Else,
-            "while" => TokenKind::Else,
+            "while" => TokenKind::While,
             ident => TokenKind::Ident(ident),
         };
         let token = Token::new(kind, self.origin, self.pos);
@@ -166,36 +166,15 @@ mod tests {
             vec![TK::Ident("hoge"), TK::Op(Op::Add), TK::Num(42)],
         );
         assert_tk(
-            "hoge=42+2",
-            vec![
-                TK::Ident("hoge"),
-                TK::Op(Op::Assign),
-                TK::Num(42),
-                TK::Op(Op::Add),
-                TK::Num(2),
-            ],
+            "hoge=42",
+            vec![TK::Ident("hoge"), TK::Op(Op::Assign), TK::Num(42)],
         );
-        assert_tk(
-            "hoge=42+2",
-            vec![
-                TK::Ident("hoge"),
-                TK::Op(Op::Assign),
-                TK::Num(42),
-                TK::Op(Op::Add),
-                TK::Num(2),
-            ],
-        );
-        assert_tk(
-            "if(42==42)",
-            vec![
-                TK::If,
-                TK::Par(Par::Left),
-                TK::Num(42),
-                TK::Op(Op::Eq),
-                TK::Num(42),
-                TK::Par(Par::Right),
-            ],
-        );
+        assert_tk("if(42", vec![TK::If, TK::Par(Par::Left), TK::Num(42)]);
         assert_tk("hoge;", vec![TK::Ident("hoge"), TK::Semi]);
+        assert_tk(
+            ")else hoge",
+            vec![TK::Par(Par::Right), TK::Else, TK::Ident("hoge")],
+        );
+        assert_tk("while (", vec![TK::While, TK::Par(Par::Left)]);
     }
 }
