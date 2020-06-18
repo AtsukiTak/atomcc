@@ -8,8 +8,7 @@ pub fn mov<T1, T2>(t1: T1, t2: T2) -> Mov<T1, T2> {
 }
 
 impl Asm for Mov<Reg64, Reg64> {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()>
-    {
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
         write!(w, "  mov {}, {}\n", self.0, self.1)
     }
 }
@@ -18,8 +17,7 @@ impl<A> Asm for Mov<Reg64, A>
 where
     A: Address,
 {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()>
-    {
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
         write!(w, "  mov {}, {}\n", self.0, self.1)
     }
 }
@@ -28,8 +26,7 @@ impl<A> Asm for Mov<A, Reg64>
 where
     A: Address,
 {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()>
-    {
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
         write!(w, "  mov {}, {}\n", self.0, self.1)
     }
 }
