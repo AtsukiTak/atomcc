@@ -52,7 +52,7 @@ impl AsmBuf {
     }
 
     pub fn output_file(&self, path: impl AsRef<Path>) -> IoResult<()> {
-        let mut file = OpenOptions::new().write(true).open(path)?;
+        let mut file = OpenOptions::new().create(true).write(true).open(path)?;
         self.output(&mut file)
     }
 }
