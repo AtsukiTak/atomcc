@@ -129,29 +129,19 @@ impl<'a> Parser<'a> {
     pub fn parse_stmt(&mut self, tokens: &mut TokenStream<'a>) -> Node {
         match tokens.peek() {
             // "return" から始まるとき
-            Some(Token {
-                kind: TokenKind::Keyword(Keyword::Return),
-                ..
-            }) => {
+            Some(token) if token.keyword() == Some(Keyword::Return) => {
                 let _ = tokens.next();
                 let node = Node::Return(self.parse_expr(tokens));
                 self.parse_semi(tokens);
                 node
             }
             // "if" から始まるとき
-            Some(Token {
-                kind: TokenKind::Keyword(Keyword::If),
-                ..
-            }) => {
+            Some(token) if token.keyword() == Some(Keyword::If) => {
                 let _ = tokens.next();
 
                 // 次のTokenが "(" であることを確認
                 match tokens.next() {
-                    Some(Token {
-                        kind: TokenKind::Par(Par::Left),
-                        ..
-                    }) => {}
-                    Some(token) => token.exit_with_err_msg("expect \"(\" but found another"),
+                    Some(token) => token.expect(Par::Left),
                     None => tokens.exit_with_err_msg("expected \"(\" but found EOF"),
                 };
 
@@ -160,11 +150,7 @@ impl<'a> Parser<'a> {
 
                 // 次のTokenが ")" であることを確認
                 match tokens.next() {
-                    Some(Token {
-                        kind: TokenKind::Par(Par::Right),
-                        ..
-                    }) => {}
-                    Some(token) => token.exit_with_err_msg("expect \"(\" but found another"),
+                    Some(token) => token.expect(Par::Right),
                     None => tokens.exit_with_err_msg("expected \"(\" but found EOF"),
                 }
 
@@ -173,10 +159,7 @@ impl<'a> Parser<'a> {
 
                 // 次のTokenが "else" かどうか確認
                 match tokens.peek() {
-                    Some(Token {
-                        kind: TokenKind::Keyword(Keyword::Else),
-                        ..
-                    }) => {
+                    Some(token) if token.keyword() == Some(Keyword::Else) => {
                         let _ = tokens.next();
                         let else_stmt = self.parse_stmt(tokens);
                         Node::IfElse(IfElseNode {
@@ -202,11 +185,7 @@ impl<'a> Parser<'a> {
     // 次のTokenがセミコロンかチェックする
     fn parse_semi(&mut self, tokens: &mut TokenStream<'a>) {
         match tokens.next() {
-            Some(Token {
-                kind: TokenKind::Keyword(Keyword::Semi),
-                ..
-            }) => {}
-            Some(t) => t.exit_with_err_msg("expected \";\" but found another"),
+            Some(token) => token.expect(Keyword::Semi),
             None => tokens.exit_with_err_msg("expected \";\" but found EOF"),
         }
     }

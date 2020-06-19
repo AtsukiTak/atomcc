@@ -19,6 +19,24 @@ pub enum TokenKind<'a> {
     Keyword(Keyword),
 }
 
+impl<'a> From<Op> for TokenKind<'a> {
+    fn from(op: Op) -> TokenKind<'a> {
+        TokenKind::Op(op)
+    }
+}
+
+impl<'a> From<Par> for TokenKind<'a> {
+    fn from(par: Par) -> TokenKind<'a> {
+        TokenKind::Par(par)
+    }
+}
+
+impl<'a> From<Keyword> for TokenKind<'a> {
+    fn from(kw: Keyword) -> TokenKind<'a> {
+        TokenKind::Keyword(kw)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Op {
     // 算術演算子
@@ -72,6 +90,17 @@ impl<'a> Token<'a> {
         }
     }
 
+    pub fn expect<K>(&self, kind: K)
+    where
+        TokenKind<'a>: From<K>,
+    {
+        let kind = TokenKind::from(kind);
+        if self.kind != kind {
+            let msg = format!("expected a {:?}, but found {:?}", kind, self.kind);
+            self.exit_with_err_msg(msg.as_str())
+        }
+    }
+
     pub fn expect_op(&self) -> Op {
         self.op()
             .unwrap_or_else(|| self.exit_with_err_msg("not an operator"))
@@ -108,7 +137,24 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn exit_with_err_msg(&self, msg: &'static str) -> ! {
+    pub fn expect_ident(&self) -> &'a str {
+        self.ident()
+            .unwrap_or_else(|| self.exit_with_err_msg("not an identifier"))
+    }
+
+    pub fn keyword(&self) -> Option<Keyword> {
+        match self.kind {
+            TokenKind::Keyword(kw) => Some(kw),
+            _ => None,
+        }
+    }
+
+    pub fn expect_keyword(&self) -> Keyword {
+        self.keyword()
+            .unwrap_or_else(|| self.exit_with_err_msg("not a keyword"))
+    }
+
+    pub fn exit_with_err_msg(&self, msg: &str) -> ! {
         eprintln!("{}", self.origin);
         let leading_spaces = " ".repeat(self.pos);
         eprintln!("{}^ {}", leading_spaces, msg);
