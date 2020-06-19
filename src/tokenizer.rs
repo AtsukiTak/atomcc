@@ -1,4 +1,4 @@
-use crate::token::{Op, Par, Token, TokenKind};
+use crate::token::{Keyword, Op, Par, Token, TokenKind};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TokenStream<'a> {
@@ -72,7 +72,7 @@ impl<'a> Iterator for TokenStream<'a> {
             b'=' => Some(TokenKind::Op(Op::Assign)),
             b'(' => Some(TokenKind::Par(Par::Left)),
             b')' => Some(TokenKind::Par(Par::Right)),
-            b';' => Some(TokenKind::Semi),
+            b';' => Some(TokenKind::Keyword(Keyword::Semi)),
             _ => None,
         } {
             let token = Token::new(kind, self.origin, self.pos);
@@ -82,7 +82,7 @@ impl<'a> Iterator for TokenStream<'a> {
 
         // 数値リテラルを調べる
         if let Some((digit, rmn)) = split_digit(s) {
-            let token = Token::new_num(digit, self.origin, self.pos);
+            let token = Token::new(TokenKind::Num(digit), self.origin, self.pos);
             self.update_s(rmn);
             return Some(token);
         }
@@ -90,10 +90,10 @@ impl<'a> Iterator for TokenStream<'a> {
         // キーワード/識別子を調べる
         let (token, rmn) = split_delim(s);
         let kind = match token {
-            "return" => TokenKind::Return,
-            "if" => TokenKind::If,
-            "else" => TokenKind::Else,
-            "while" => TokenKind::While,
+            "return" => TokenKind::Keyword(Keyword::Return),
+            "if" => TokenKind::Keyword(Keyword::If),
+            "else" => TokenKind::Keyword(Keyword::Else),
+            "while" => TokenKind::Keyword(Keyword::While),
             ident => TokenKind::Ident(ident),
         };
         let token = Token::new(kind, self.origin, self.pos);

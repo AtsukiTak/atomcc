@@ -1,4 +1,4 @@
-use crate::token::{Op, Par, Token, TokenKind};
+use crate::token::{Keyword, Op, Par, Token, TokenKind};
 use crate::tokenizer::TokenStream;
 use std::collections::HashMap;
 
@@ -130,7 +130,7 @@ impl<'a> Parser<'a> {
         match tokens.peek() {
             // "return" から始まるとき
             Some(Token {
-                kind: TokenKind::Return,
+                kind: TokenKind::Keyword(Keyword::Return),
                 ..
             }) => {
                 let _ = tokens.next();
@@ -140,7 +140,7 @@ impl<'a> Parser<'a> {
             }
             // "if" から始まるとき
             Some(Token {
-                kind: TokenKind::If,
+                kind: TokenKind::Keyword(Keyword::If),
                 ..
             }) => {
                 let _ = tokens.next();
@@ -174,7 +174,7 @@ impl<'a> Parser<'a> {
                 // 次のTokenが "else" かどうか確認
                 match tokens.peek() {
                     Some(Token {
-                        kind: TokenKind::Else,
+                        kind: TokenKind::Keyword(Keyword::Else),
                         ..
                     }) => {
                         let _ = tokens.next();
@@ -203,7 +203,7 @@ impl<'a> Parser<'a> {
     fn parse_semi(&mut self, tokens: &mut TokenStream<'a>) {
         match tokens.next() {
             Some(Token {
-                kind: TokenKind::Semi,
+                kind: TokenKind::Keyword(Keyword::Semi),
                 ..
             }) => {}
             Some(t) => t.exit_with_err_msg("expected \";\" but found another"),

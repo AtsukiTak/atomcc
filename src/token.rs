@@ -15,16 +15,8 @@ pub enum TokenKind<'a> {
     Num(usize),
     /// 識別子（変数名とか）
     Ident(&'a str),
-    /// "return" keyword
-    Return,
-    /// "if" keyword
-    If,
-    /// "else" keyword
-    Else,
-    /// "while" keyword
-    While,
-    /// ";"
-    Semi,
+    /// キーワード（ifとかreturnとか）
+    Keyword(Keyword),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,17 +46,23 @@ pub enum Par {
     Right,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Keyword {
+    /// "return" keyword
+    Return,
+    /// "if" keyword
+    If,
+    /// "else" keyword
+    Else,
+    /// "while" keyword
+    While,
+    /// ";"
+    Semi,
+}
+
 impl<'a> Token<'a> {
     pub fn new(kind: TokenKind<'a>, origin: &'a str, pos: usize) -> Token<'a> {
         Token { kind, origin, pos }
-    }
-
-    pub fn new_num(n: usize, origin: &'a str, pos: usize) -> Token {
-        Token {
-            kind: TokenKind::Num(n),
-            origin,
-            pos,
-        }
     }
 
     pub fn op(&self) -> Option<Op> {
