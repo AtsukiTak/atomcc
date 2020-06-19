@@ -93,7 +93,7 @@ impl Generator {
 
                 // 等しければ一連のコードの終わりにjumpする
                 // つまり、以下の処理をスキップする
-                let end_label = format!("Lend{}", self.new_label_num());
+                let end_label = format!("if_end_{}", self.new_label_num());
                 asm_buf.push(arbitrary(format!("  je {}", end_label)));
 
                 // stmtを評価する
@@ -119,7 +119,8 @@ impl Generator {
                 asm_buf.push(arbitrary("  cmp rax, 0"));
 
                 // 等しければ `else_label` にjumpする
-                let else_label = format!("Lelse{}", self.new_label_num());
+                let label_num = self.new_label_num();
+                let else_label = format!("if_else_{}", label_num);
                 asm_buf.push(arbitrary(format!("  je {}", else_label)));
 
                 // 評価結果がtrueのときに実行されるstmt
@@ -127,7 +128,7 @@ impl Generator {
 
                 // 実行が終わったら `end_label` にjumpする
                 // つまりelseのstmtをスキップする
-                let end_label = format!("Lend{}", self.new_label_num());
+                let end_label = format!("if_end_{}", label_num);
                 asm_buf.push(arbitrary(format!("  jmp {}", end_label)));
 
                 // else_labelのジャンプ先
@@ -142,7 +143,8 @@ impl Generator {
 
             Node::While(WhileNode { cond, stmt }) => {
                 // ループの戻る場所を示す
-                let begin_label = format!("loop_begin{}", self.new_label_num());
+                let label_num = self.new_label_num();
+                let begin_label = format!("loop_begin_{}", label_num);
                 asm_buf.push(arbitrary(format!("{}:", begin_label)));
 
                 // ループ判定の式を評価するコード
@@ -153,7 +155,7 @@ impl Generator {
 
                 // 判定の結果が0と等しければend_labelにジャンプ
                 asm_buf.push(arbitrary("  cmp rax, 0"));
-                let end_label = format!("loop_end{}", self.new_label_num());
+                let end_label = format!("loop_end_{}", label_num);
                 asm_buf.push(arbitrary(format!("  je {}", end_label)));
 
                 // stmtを実行するコード
