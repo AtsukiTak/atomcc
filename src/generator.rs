@@ -1,6 +1,6 @@
 use crate::{
     asm::{arbitrary, instructions::*, Addr, AsmBuf, Reg64::*},
-    parser::{AssignNode, ExprNode, IfElseNode, IfNode, Node, OpNode},
+    parser::{AssignNode, ExprNode, IfElseNode, IfNode, Node, OpNode, WhileNode},
     token::Op,
 };
 
@@ -137,6 +137,32 @@ impl Generator {
                 self.gen_stmt(else_stmt, asm_buf);
 
                 // end_labelのジャンプ先
+                asm_buf.push(arbitrary(format!("{}:", end_label)));
+            }
+
+            Node::While(WhileNode { cond, stmt }) => {
+                // ループの戻る場所を示す
+                let begin_label = format!("loop_begin{}", self.new_label_num());
+                asm_buf.push(arbitrary(format!("{}:", begin_label)));
+
+                // ループ判定の式を評価するコード
+                self.gen_expr(cond, asm_buf);
+
+                // ループ判定の結果を取り出す
+                asm_buf.push(pop(RAX));
+
+                // 判定の結果が0と等しければend_labelにジャンプ
+                asm_buf.push(arbitrary("  cmp rax, 0"));
+                let end_label = format!("loop_end{}", self.new_label_num());
+                asm_buf.push(arbitrary(format!("  je {}", end_label)));
+
+                // stmtを実行するコード
+                self.gen_stmt(stmt, asm_buf);
+
+                // ループの先頭に戻る
+                asm_buf.push(arbitrary(format!("  jmp {}", begin_label)));
+
+                // ループを抜け出した場所
                 asm_buf.push(arbitrary(format!("{}:", end_label)));
             }
         }

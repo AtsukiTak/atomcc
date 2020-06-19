@@ -120,9 +120,11 @@ fn split_digit(s: &str) -> Option<(usize, &str)> {
 fn split_delim(s: &str) -> (&str, &str) {
     assert!(s.len() != 0);
 
-    let idx = s
-        .find(&[' ', '{', '}', '(', ')', '=', ';', '+', '-', '*', '/'][..])
-        .unwrap_or(s.len());
+    let delimiters = [
+        ' ', '{', '}', '(', ')', '=', ';', '+', '-', '*', '/', '<', '>',
+    ];
+
+    let idx = s.find(&delimiters[..]).unwrap_or(s.len());
     if idx == 0 {
         // '{' などを返す
         s.split_at(1)
@@ -161,6 +163,7 @@ mod tests {
         assert_tk("42+2", vec![TK::Num(42), TK::Op(Op::Add), TK::Num(2)]);
         assert_tk("ho_ge", vec![TK::Ident("ho_ge")]);
         assert_tk("hoge42", vec![TK::Ident("hoge42")]);
+        assert_tk("i<3", vec![TK::Ident("i"), TK::Op(Op::Lt), TK::Num(3)]);
         assert_tk(
             "hoge+42",
             vec![TK::Ident("hoge"), TK::Op(Op::Add), TK::Num(42)],
@@ -169,12 +172,22 @@ mod tests {
             "hoge=42",
             vec![TK::Ident("hoge"), TK::Op(Op::Assign), TK::Num(42)],
         );
-        assert_tk("if(42", vec![TK::If, TK::Par(Par::Left), TK::Num(42)]);
-        assert_tk("hoge;", vec![TK::Ident("hoge"), TK::Semi]);
+        assert_tk(
+            "if(42",
+            vec![TK::Keyword(Keyword::If), TK::Par(Par::Left), TK::Num(42)],
+        );
+        assert_tk("hoge;", vec![TK::Ident("hoge"), TK::Keyword(Keyword::Semi)]);
         assert_tk(
             ")else hoge",
-            vec![TK::Par(Par::Right), TK::Else, TK::Ident("hoge")],
+            vec![
+                TK::Par(Par::Right),
+                TK::Keyword(Keyword::Else),
+                TK::Ident("hoge"),
+            ],
         );
-        assert_tk("while (", vec![TK::While, TK::Par(Par::Left)]);
+        assert_tk(
+            "while (",
+            vec![TK::Keyword(Keyword::While), TK::Par(Par::Left)],
+        );
     }
 }

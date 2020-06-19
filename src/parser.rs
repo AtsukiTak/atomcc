@@ -9,6 +9,7 @@ pub enum Node {
     Return(ExprNode),
     If(IfNode),
     IfElse(IfElseNode),
+    While(WhileNode),
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +47,12 @@ pub struct IfElseNode {
     pub expr: ExprNode,
     pub if_stmt: Box<Node>,
     pub else_stmt: Box<Node>,
+}
+
+#[derive(Debug, Clone)]
+pub struct WhileNode {
+    pub cond: ExprNode,
+    pub stmt: Box<Node>,
 }
 
 impl ExprNode {
@@ -97,6 +104,7 @@ impl<'a> Parser<'a> {
     /// > stmt          = assign ";"
     ///     | "return" expr ";"
     ///     | "if" "(" expr ")" stmt ("else" stmt)?
+    ///     | "while" "(" expr ")" stmt
     /// > assign        = (ident "=")? expr
     /// > expr          = equality
     /// > equality      = relational ("==" relational | "!=" relational)*
@@ -124,6 +132,7 @@ impl<'a> Parser<'a> {
     /// > stmt          = assign ";"
     ///     | "return" expr ";"
     ///     | "if" "(" expr ")" stmt ("else" stmt)?
+    ///     | "while" "(" expr ")" stmt
     ///
     /// で表現される非終端記号stmtをパースする関数。
     pub fn parse_stmt(&mut self, tokens: &mut TokenStream<'a>) -> Node {
@@ -136,49 +145,78 @@ impl<'a> Parser<'a> {
                 node
             }
             // "if" から始まるとき
-            Some(token) if token.keyword() == Some(Keyword::If) => {
+            Some(token) if token.keyword() == Some(Keyword::If) => self.parse_if(tokens),
+            // "while" から始まるとき
+            Some(token) if token.keyword() == Some(Keyword::While) => {
                 let _ = tokens.next();
 
-                // 次のTokenが "(" であることを確認
+                // 次のトークンが "(" であることを確認する
                 match tokens.next() {
                     Some(token) => token.expect(Par::Left),
                     None => tokens.exit_with_err_msg("expected \"(\" but found EOF"),
-                };
+                }
 
-                // expr をパース
                 let expr = self.parse_expr(tokens);
 
-                // 次のTokenが ")" であることを確認
+                // 次のトークンが ")" であることを確認する
                 match tokens.next() {
                     Some(token) => token.expect(Par::Right),
-                    None => tokens.exit_with_err_msg("expected \"(\" but found EOF"),
+                    None => tokens.exit_with_err_msg("expected \")\" but found EOF"),
                 }
 
-                // stmt をパース
                 let stmt = self.parse_stmt(tokens);
 
-                // 次のTokenが "else" かどうか確認
-                match tokens.peek() {
-                    Some(token) if token.keyword() == Some(Keyword::Else) => {
-                        let _ = tokens.next();
-                        let else_stmt = self.parse_stmt(tokens);
-                        Node::IfElse(IfElseNode {
-                            expr,
-                            if_stmt: Box::new(stmt),
-                            else_stmt: Box::new(else_stmt),
-                        })
-                    }
-                    _ => Node::If(IfNode {
-                        expr,
-                        stmt: Box::new(stmt),
-                    }),
-                }
+                Node::While(WhileNode {
+                    cond: expr,
+                    stmt: Box::new(stmt),
+                })
             }
+            // その他の時はassignとして処理する
             _ => {
                 let node = self.parse_assign(tokens);
                 self.parse_semi(tokens);
                 node
             }
+        }
+    }
+
+    // > if =  "if" "(" expr ")" stmt ("else" stmt)?
+    fn parse_if(&mut self, tokens: &mut TokenStream<'a>) -> Node {
+        let _ = tokens.next();
+
+        // 次のTokenが "(" であることを確認
+        match tokens.next() {
+            Some(token) => token.expect(Par::Left),
+            None => tokens.exit_with_err_msg("expected \"(\" but found EOF"),
+        };
+
+        // expr をパース
+        let expr = self.parse_expr(tokens);
+
+        // 次のTokenが ")" であることを確認
+        match tokens.next() {
+            Some(token) => token.expect(Par::Right),
+            None => tokens.exit_with_err_msg("expected \"(\" but found EOF"),
+        }
+
+        // stmt をパース
+        let stmt = self.parse_stmt(tokens);
+
+        // 次のTokenが "else" かどうか確認
+        match tokens.peek() {
+            Some(token) if token.keyword() == Some(Keyword::Else) => {
+                let _ = tokens.next();
+                let else_stmt = self.parse_stmt(tokens);
+                Node::IfElse(IfElseNode {
+                    expr,
+                    if_stmt: Box::new(stmt),
+                    else_stmt: Box::new(else_stmt),
+                })
+            }
+            _ => Node::If(IfNode {
+                expr,
+                stmt: Box::new(stmt),
+            }),
         }
     }
 
