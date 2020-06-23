@@ -146,16 +146,16 @@ impl<'a> Parser<'a> {
     pub fn parse_stmt(&mut self, tokens: &mut TokenStream<'a>) -> Node {
         match tokens.peek() {
             // "return" から始まるとき
-            Some(token) if token.keyword() == Some(Keyword::Return) => {
+            Some(token) if token.kind == Keyword::Return => {
                 let _ = tokens.next();
                 let node = Node::Return(self.parse_expr(tokens));
                 self.parse_semi(tokens);
                 node
             }
             // "if" から始まるとき
-            Some(token) if token.keyword() == Some(Keyword::If) => self.parse_if(tokens),
+            Some(token) if token.kind == Keyword::If => self.parse_if(tokens),
             // "while" から始まるとき
-            Some(token) if token.keyword() == Some(Keyword::While) => {
+            Some(token) if token.kind == Keyword::While => {
                 let _ = tokens.next();
 
                 // 次のトークンが "(" であることを確認する
@@ -233,7 +233,7 @@ impl<'a> Parser<'a> {
 
         // 次のTokenが "else" かどうか確認
         match tokens.peek() {
-            Some(token) if token.keyword() == Some(Keyword::Else) => {
+            Some(token) if token.kind == Keyword::Else => {
                 let _ = tokens.next();
                 let else_stmt = self.parse_stmt(tokens);
                 Node::IfElse(IfElseNode {
