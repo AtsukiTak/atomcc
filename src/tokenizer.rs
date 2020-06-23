@@ -1,4 +1,4 @@
-use crate::token::{Keyword, Op, Par, Token, TokenKind};
+use crate::token::{Brace, Keyword, Op, Par, Token, TokenKind};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TokenStream<'a> {
@@ -72,6 +72,8 @@ impl<'a> Iterator for TokenStream<'a> {
             b'=' => Some(TokenKind::Op(Op::Assign)),
             b'(' => Some(TokenKind::Par(Par::Left)),
             b')' => Some(TokenKind::Par(Par::Right)),
+            b'{' => Some(TokenKind::Brace(Brace::Left)),
+            b'}' => Some(TokenKind::Brace(Brace::Right)),
             b';' => Some(TokenKind::Keyword(Keyword::Semi)),
             _ => None,
         } {
@@ -158,6 +160,8 @@ mod tests {
         assert_tk("", vec![]);
         assert_tk("   ", vec![]);
         assert_tk("42", vec![TK::Num(42)]);
+        assert_tk("(", vec![TK::Par(Par::Left)]);
+        assert_tk("}", vec![TK::Brace(Brace::Right)]);
         assert_tk("-42", vec![TK::Op(Op::Sub), TK::Num(42)]);
         assert_tk("   42   ", vec![TK::Num(42)]);
         assert_tk("42+2", vec![TK::Num(42), TK::Op(Op::Add), TK::Num(2)]);
