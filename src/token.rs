@@ -11,6 +11,8 @@ pub enum TokenKind<'a> {
     Op(Op),
     /// "(" or ")"
     Par(Par),
+    /// "{" or "}"
+    Brace(Brace),
     /// 数値リテラル
     Num(usize),
     /// 識別子（変数名とか）
@@ -28,6 +30,12 @@ impl<'a> From<Op> for TokenKind<'a> {
 impl<'a> From<Par> for TokenKind<'a> {
     fn from(par: Par) -> TokenKind<'a> {
         TokenKind::Par(par)
+    }
+}
+
+impl<'a> From<Brace> for TokenKind<'a> {
+    fn from(br: Brace) -> TokenKind<'a> {
+        TokenKind::Brace(br)
     }
 }
 
@@ -60,6 +68,13 @@ pub enum Op {
 /// Parentheses
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Par {
+    Left,
+    Right,
+}
+
+/// Brace
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Brace {
     Left,
     Right,
 }
