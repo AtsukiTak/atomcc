@@ -1,4 +1,4 @@
-use crate::token::{Keyword, Op, Par, Token, TokenKind};
+use crate::token::{Brace, Keyword, Op, Par, Token, TokenKind};
 use crate::tokenizer::TokenStream;
 use std::collections::HashMap;
 
@@ -10,6 +10,7 @@ pub enum Node {
     If(IfNode),
     IfElse(IfElseNode),
     While(WhileNode),
+    Block(BlockNode),
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +54,11 @@ pub struct IfElseNode {
 pub struct WhileNode {
     pub cond: ExprNode,
     pub stmt: Box<Node>,
+}
+
+#[derive(Debug, Clone)]
+pub struct BlockNode {
+    pub stmts: Vec<Node>,
 }
 
 impl ExprNode {
@@ -105,6 +111,7 @@ impl<'a> Parser<'a> {
     ///     | "return" expr ";"
     ///     | "if" "(" expr ")" stmt ("else" stmt)?
     ///     | "while" "(" expr ")" stmt
+    ///     | "{" stmt* "}"
     /// > assign        = (ident "=")? expr
     /// > expr          = equality
     /// > equality      = relational ("==" relational | "!=" relational)*
@@ -133,6 +140,7 @@ impl<'a> Parser<'a> {
     ///     | "return" expr ";"
     ///     | "if" "(" expr ")" stmt ("else" stmt)?
     ///     | "while" "(" expr ")" stmt
+    ///     | "{" stmt* "}"
     ///
     /// で表現される非終端記号stmtをパースする関数。
     pub fn parse_stmt(&mut self, tokens: &mut TokenStream<'a>) -> Node {
@@ -170,6 +178,27 @@ impl<'a> Parser<'a> {
                     cond: expr,
                     stmt: Box::new(stmt),
                 })
+            }
+            // "{" から始まるとき
+            Some(token) if token.kind == Brace::Left => {
+                let _ = tokens.next();
+
+                let mut stmts = Vec::new();
+
+                // "}" が現れるまでstmtをパースする
+                while tokens
+                    .peek()
+                    .unwrap_or_else(|| tokens.exit_with_err_msg("expected \"}\" but found EOF"))
+                    .kind
+                    != Brace::Right
+                {
+                    stmts.push(self.parse_stmt(tokens));
+                }
+
+                // "}" を捨てる
+                let _ = tokens.next();
+
+                Node::Block(BlockNode { stmts })
             }
             // その他の時はassignとして処理する
             _ => {
