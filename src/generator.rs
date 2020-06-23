@@ -91,7 +91,7 @@ impl Generator {
                 buf.push(pop(RAX));
 
                 // 取り出した値が0と等しいかどうか
-                buf.push(arbitrary("  cmp rax, 0"));
+                buf.push(cmp(RAX, 0));
 
                 // 等しければ一連のコードの終わりにjumpする
                 // つまり、以下の処理をスキップする
@@ -118,7 +118,7 @@ impl Generator {
                 buf.push(pop(RAX));
 
                 // 評価結果が0と等しいかどうか
-                buf.push(arbitrary("  cmp rax, 0"));
+                buf.push(cmp(RAX, 0));
 
                 // 等しければ `else_label` にjumpする
                 let label_num = self.new_label_num();
@@ -156,7 +156,7 @@ impl Generator {
                 buf.push(pop(RAX));
 
                 // 判定の結果が0と等しければend_labelにジャンプ
-                buf.push(arbitrary("  cmp rax, 0"));
+                buf.push(cmp(RAX, 0));
                 let end_label = format!("L_loop_end_{}", label_num);
                 buf.push(arbitrary(format!("  je {}", end_label)));
 
@@ -207,22 +207,22 @@ impl Generator {
                         buf.push(arbitrary("  idiv rdi"));
                     }
                     Op::Eq => {
-                        buf.push(arbitrary("  cmp rax, rdi"));
+                        buf.push(cmp(RAX, RDI));
                         buf.push(arbitrary("  sete al"));
                         buf.push(arbitrary("  movzx rax, al"));
                     }
                     Op::Neq => {
-                        buf.push(arbitrary("  cmp rax, rdi"));
+                        buf.push(cmp(RAX, RDI));
                         buf.push(arbitrary("  setne al"));
                         buf.push(arbitrary("  movzx rax, al"));
                     }
                     Op::Lt => {
-                        buf.push(arbitrary("  cmp rax, rdi"));
+                        buf.push(cmp(RAX, RDI));
                         buf.push(arbitrary("  setl al"));
                         buf.push(arbitrary("  movzx rax, al"));
                     }
                     Op::Lte => {
-                        buf.push(arbitrary("  cmp rax, rdi"));
+                        buf.push(cmp(RAX, RDI));
                         buf.push(arbitrary("  setle al"));
                         buf.push(arbitrary("  movzx rax, al"));
                     }
