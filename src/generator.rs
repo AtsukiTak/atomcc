@@ -54,7 +54,7 @@ impl Generator {
         buf.push(mov(RSP, RBP));
         // prologueで避難させておいたベースポインタの値を戻す
         buf.push(pop(RBP));
-        buf.push(arbitrary("  ret"));
+        buf.push(ret());
     }
 
     /// １つのstmtを処理するようなコードを生成する

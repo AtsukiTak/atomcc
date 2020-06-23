@@ -16,6 +16,22 @@ use super::{addr::Address, reg::Reg64, Asm};
 /// }
 /// ```
 macro_rules! instruction {
+    // 0 引数のinstruction
+    ($lower:tt, $ty:tt) => {
+        #[derive(Debug, Clone, Copy, PartialEq)]
+        pub struct $ty();
+
+        pub fn $lower() -> $ty {
+            $ty()
+        }
+
+        impl $ty {
+            pub const fn opcode() -> &'static str {
+                stringify!($lower)
+            }
+        }
+    };
+
     ($lower: tt, $ty: tt<$t1: tt $(, $tn: tt)*>) => {
         #[derive(Debug, Clone, Copy, PartialEq)]
         pub struct $ty<$t1 $(, $tn)*>(pub $t1 $(, pub $tn)*);
@@ -43,6 +59,16 @@ macro_rules! instruction {
 /// }
 /// ```
 macro_rules! impl_asm {
+    // 0 引数のinstruction
+    ($ty:tt) => {
+        impl Asm for $ty {
+            fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+                write!(w, "  {}\n", Self::opcode())
+            }
+        }
+    };
+
+    // 1 引数のinstruction
     ($ty:tt<$t1:ty>) => {
         impl Asm for $ty<$t1> {
             fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -51,6 +77,7 @@ macro_rules! impl_asm {
         }
     };
 
+    // 2 引数のinstruction
     ($ty:tt<$t1:ty, $t2:ty>) => {
         impl Asm for $ty<$t1, $t2> {
             fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -59,6 +86,7 @@ macro_rules! impl_asm {
         }
     };
 
+    // 2 引数のinstruction (where句あり)
     ($ty:tt<$t1:ty, $t2:ty> where A: Address) => {
         impl<A> Asm for $ty<$t1, $t2>
         where
@@ -95,3 +123,7 @@ impl_asm!(Push<i64>);
 instruction!(sub, Sub<T1, T2>);
 impl_asm!(Sub<Reg64, i64>);
 impl_asm!(Sub<Reg64, Reg64>);
+
+// ret
+instruction!(ret, Ret);
+impl_asm!(Ret);
