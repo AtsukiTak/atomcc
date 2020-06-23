@@ -42,5 +42,14 @@ assert 42 'foo = 11; return foo + 31;'
 assert 22 'foo = 11; if ( foo == 11 ) 22; else 42;'
 assert 42 'foo = 11; if(foo == 10) 22; else 42;'
 assert 10 'i = 1; while (i<10) i = i+1; return i;'
+assert 45 '
+i = 1;
+n = 0;
+while (i < 10) {
+  n = n + i;
+  i = i + 1;
+}
+return n;
+'
 
 echo OK

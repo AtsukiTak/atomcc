@@ -1,6 +1,6 @@
 use crate::{
     asm::{arbitrary, instructions::*, Addr, AsmBuf, Reg64::*},
-    parser::{AssignNode, ExprNode, IfElseNode, IfNode, Node, OpNode, WhileNode},
+    parser::{AssignNode, BlockNode, ExprNode, IfElseNode, IfNode, Node, OpNode, WhileNode},
     token::Op,
 };
 
@@ -36,6 +36,8 @@ impl Generator {
         asm_buf.push(arbitrary("_main:"));
     }
 
+    // プロローグコードを修正
+    // サブルーチンに移行するたびに呼び出す
     pub fn gen_prologue(&self, stack_bytes: i64, asm_buf: &mut AsmBuf) {
         // ベースポインタの値を避難
         asm_buf.push(push(RBP));
@@ -45,6 +47,8 @@ impl Generator {
         asm_buf.push(sub(RSP, 8 * stack_bytes));
     }
 
+    // エピローグコードを生成
+    // サブルーチンから抜け出すたびに呼び出す
     pub fn gen_epilogue(&self, asm_buf: &mut AsmBuf) {
         // スタックポインタをベースポインタまで移動
         asm_buf.push(mov(RSP, RBP));
@@ -166,6 +170,12 @@ impl Generator {
 
                 // ループを抜け出した場所
                 asm_buf.push(arbitrary(format!("{}:", end_label)));
+            }
+
+            Node::Block(BlockNode { stmts }) => {
+                for stmt in stmts {
+                    self.gen_stmt(stmt, asm_buf);
+                }
             }
         }
     }
