@@ -21,29 +21,33 @@ pub enum TokenKind<'a> {
     Keyword(Keyword),
 }
 
-impl<'a> From<Op> for TokenKind<'a> {
-    fn from(op: Op) -> TokenKind<'a> {
-        TokenKind::Op(op)
-    }
+macro_rules! some_impls {
+    ($t: tt) => {
+        impl<'a> From<$t> for TokenKind<'a> {
+            fn from(t: $t) -> Self {
+                TokenKind::$t(t)
+            }
+        }
+
+        impl<'a> PartialEq<$t> for TokenKind<'a> {
+            fn eq(&self, t: &$t) -> bool {
+                match self {
+                    TokenKind::$t(i) => i == t,
+                    _ => false,
+                }
+            }
+        }
+    };
+
+    ($t: tt $(, $rmn: tt)*) => {
+        some_impls!($t);
+        $(
+            some_impls!($rmn);
+        )*
+    };
 }
 
-impl<'a> From<Par> for TokenKind<'a> {
-    fn from(par: Par) -> TokenKind<'a> {
-        TokenKind::Par(par)
-    }
-}
-
-impl<'a> From<Brace> for TokenKind<'a> {
-    fn from(br: Brace) -> TokenKind<'a> {
-        TokenKind::Brace(br)
-    }
-}
-
-impl<'a> From<Keyword> for TokenKind<'a> {
-    fn from(kw: Keyword) -> TokenKind<'a> {
-        TokenKind::Keyword(kw)
-    }
-}
+some_impls!(Op, Par, Brace, Keyword);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Op {
