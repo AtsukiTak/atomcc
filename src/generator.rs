@@ -1,5 +1,5 @@
 use crate::{
-    asm::{arbitrary, instructions::*, Addr, AsmBuf, Reg64::*},
+    asm::{arbitrary, instructions::*, Addr, AsmBuf, Reg64::*, Reg8::*},
     parser::{AssignNode, BlockNode, ExprNode, IfElseNode, IfNode, Node, OpNode, WhileNode},
     token::Op,
 };
@@ -199,32 +199,43 @@ impl Generator {
                 buf.push(pop(RAX)); // 右ブランチの計算結果をraxレジスタに記録
 
                 match kind {
-                    Op::Add => buf.push(arbitrary("  add rax, rdi")),
+                    Op::Add => buf.push(add(RAX, RDI)),
                     Op::Sub => buf.push(sub(RAX, RDI)),
-                    Op::Mul => buf.push(arbitrary("  imul rax, rdi")),
+                    Op::Mul => buf.push(imul(RAX, RDI)),
                     Op::Div => {
-                        buf.push(arbitrary("  cqo"));
-                        buf.push(arbitrary("  idiv rdi"));
+                        buf.push(cqo());
+                        buf.push(idiv(RDI));
                     }
                     Op::Eq => {
+                        // RAXとRDIが等しければZFを立てる
                         buf.push(cmp(RAX, RDI));
-                        buf.push(arbitrary("  sete al"));
-                        buf.push(arbitrary("  movzx rax, al"));
+                        // ZFが立っていればALに1をセットする
+                        buf.push(sete(AL));
+                        // ALの値をゼロ拡張してRAXにコピーする
+                        buf.push(movzx(RAX, AL));
                     }
                     Op::Neq => {
+                        // RAXとRDIが等しければZFを立てる
                         buf.push(cmp(RAX, RDI));
-                        buf.push(arbitrary("  setne al"));
-                        buf.push(arbitrary("  movzx rax, al"));
+                        // ZFが立っていなければALに1をセットする
+                        buf.push(setne(AL));
+                        // ALの値をゼロ拡張してRAXにコピーする
+                        buf.push(movzx(RAX, AL));
                     }
                     Op::Lt => {
+                        // RAX - RDIの結果をステータスフラグにセットする
                         buf.push(cmp(RAX, RDI));
-                        buf.push(arbitrary("  setl al"));
-                        buf.push(arbitrary("  movzx rax, al"));
+                        // SF <> OF のときにALに1をセットする
+                        buf.push(setl(AL));
+                        // ALの値をゼロ拡張してRAXにコピーする
+                        buf.push(movzx(RAX, AL));
                     }
                     Op::Lte => {
+                        // RAXとRDIが等しければZFを立てる
                         buf.push(cmp(RAX, RDI));
-                        buf.push(arbitrary("  setle al"));
-                        buf.push(arbitrary("  movzx rax, al"));
+                        buf.push(setle(AL));
+                        // ALの値をゼロ拡張してRAXにコピーする
+                        buf.push(movzx(RAX, AL));
                     }
                     _ => unreachable!(),
                 }

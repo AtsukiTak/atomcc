@@ -1,4 +1,4 @@
-use super::{addr::Address, reg::Reg64, Asm};
+use super::{addr::Address, reg::*, Asm};
 
 /// Instructionを表す構造体を定義する
 ///
@@ -17,8 +17,13 @@ use super::{addr::Address, reg::Reg64, Asm};
 /// ```
 macro_rules! instruction {
     // 0 引数のinstruction
-    ($lower:tt, $ty:tt) => {
+    (
+        $lower:ident =>
+        $(#[$outer:meta])*
+        pub struct $ty:ident
+    ) => {
         #[derive(Debug, Clone, Copy, PartialEq)]
+        $(#[$outer])*
         pub struct $ty();
 
         pub fn $lower() -> $ty {
@@ -32,8 +37,13 @@ macro_rules! instruction {
         }
     };
 
-    ($lower: tt, $ty: tt<$t1: tt $(, $tn: tt)*>) => {
+    (
+        $lower: ident =>
+        $(#[$outer:meta])*
+        pub struct $ty:ident<$t1: tt $(, $tn: tt)*>
+    ) => {
         #[derive(Debug, Clone, Copy, PartialEq)]
+        $(#[$outer])*
         pub struct $ty<$t1 $(, $tn)*>(pub $t1 $(, pub $tn)*);
 
         #[allow(non_snake_case)]
@@ -100,30 +110,120 @@ macro_rules! impl_asm {
 }
 
 // cmp
-instruction!(cmp, Cmp<T1, T2>);
+instruction! {cmp =>
+    /// `T1` と `T2` を比較し、その結果をEFLAGSレジスタの
+    /// ステータスフラグにセットする。
+    /// 比較は `T1` から `T2` を引き, `sub` 命令と同じように
+    /// ステータスフラグをセットする。
+    /// ただし `sub` 命令と違い、 `T1` が更新されることはない。
+    pub struct Cmp<T1, T2>
+}
 impl_asm!(Cmp<Reg64, i64>);
 impl_asm!(Cmp<Reg64, Reg64>);
 
 // mov
-instruction!(mov, Mov<T1, T2>);
+instruction! {mov =>
+    /// `T2` の値を `T1` にコピーする
+    /// `T1` = `T2`;
+    pub struct Mov<T1, T2>
+}
 impl_asm!(Mov<Reg64, Reg64>);
 impl_asm!(Mov<A, Reg64> where A: Address);
 impl_asm!(Mov<Reg64, A> where A: Address);
 
+// movzx
+instruction! {movzx =>
+    /// `T2` の値をゼロ拡張して `T1` にコピーする
+    pub struct Movzx<T1, T2>
+}
+impl_asm!(Movzx<Reg64, Reg8>);
+
 // pop
-instruction!(pop, Pop<T>);
+instruction! {pop =>
+    /// スタックトップの値をpopし、`T` にコピーする
+    pub struct Pop<T>
+}
 impl_asm!(Pop<Reg64>);
 
 // push
-instruction!(push, Push<T>);
+instruction! {push =>
+    /// `T` の値をスタックトップにpushする
+    pub struct Push<T>
+}
 impl_asm!(Push<Reg64>);
 impl_asm!(Push<i64>);
 
+// ret
+instruction! {ret =>
+    pub struct Ret
+}
+impl_asm!(Ret);
+
+// add
+instruction! {add =>
+    /// `T1` = `T1` + `T2`
+    pub struct Add<T1, T2>
+}
+impl_asm!(Add<Reg64, Reg64>);
+
 // sub
-instruction!(sub, Sub<T1, T2>);
+instruction! {sub =>
+    /// `T1` = `T1` - `T2`
+    pub struct Sub<T1, T2>
+}
 impl_asm!(Sub<Reg64, i64>);
 impl_asm!(Sub<Reg64, Reg64>);
 
-// ret
-instruction!(ret, Ret);
-impl_asm!(Ret);
+// imul
+instruction! {imul =>
+    pub struct Imul<T1, T2>
+}
+impl_asm!(Imul<Reg64, Reg64>);
+
+// cqo
+instruction! {cqo =>
+    pub struct Cqo
+}
+impl_asm!(Cqo);
+
+// idiv
+instruction! {idiv =>
+    pub struct Idiv<T>
+}
+impl_asm!(Idiv<Reg64>);
+
+// sete
+instruction! {sete =>
+    /// ZF（ゼロフラグ）がセットされていれば（ZF == 1 であれば）
+    /// 指定された場所に1を書き込む。
+    /// セットされていなければ0を書き込む。
+    pub struct Sete<T>
+}
+impl_asm!(Sete<Reg8>);
+
+// setne
+instruction! {setne =>
+    /// ZF（ゼロフラグ）がセットされていなければ（ZF == 0 であれば）
+    /// 指定された場所に1を書き込む。
+    /// セットされていなければ0を書き込む。
+    pub struct Setne<T>
+}
+impl_asm!(Setne<Reg8>);
+
+// setl
+instruction! {setl =>
+    /// SF（符号フラグ）と OF（オーバーフローフラグ）が等しくなければ
+    /// 指定された場所に1を書き込む。
+    /// セットされていなければ0を書き込む。
+    pub struct Setl<T>
+}
+impl_asm!(Setl<Reg8>);
+
+// setle
+instruction! {setle =>
+    /// SF（符号フラグ）と OF（オーバーフローフラグ）が等しくなければ
+    /// 指定された場所に1を書き込む。
+    /// セットされていなければ0を書き込む。
+    pub struct Setle<T>
+}
+impl_asm!(Setle<Reg8>);
