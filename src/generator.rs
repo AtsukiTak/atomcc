@@ -1,6 +1,6 @@
 use crate::{
     asm::{arbitrary, instructions::*, Addr, AsmBuf, Reg64::*, Reg8::*},
-    parser::{AssignNode, BlockNode, ExprNode, IfElseNode, IfNode, Node, OpNode, WhileNode},
+    parser::*,
     token::Op,
 };
 
@@ -188,6 +188,11 @@ impl Generator {
             ExprNode::Ident { offset } => {
                 buf.push(mov(RAX, Addr(RBP) - *offset as i64));
                 buf.push(push(RAX));
+            }
+
+            // 関数を呼び出す
+            ExprNode::Call(CallNode { func }) => {
+                buf.push(arbitrary(format!("  call _{}", func)));
             }
 
             // スタックトップに計算結果を載せる

@@ -16,6 +16,23 @@ assert() {
   fi
 }
 
+assert_fn() {
+  expected="$1"
+  input="$2"
+  link="$3"
+
+  target/debug/atomcc "$input" > tmp.s
+  cc -o tmp "$link" tmp.s
+  output=$(./tmp)
+
+  if [ "$output" = "$expected" ]; then
+    echo "$input => $output"
+  else
+    echo "$input => $expected expected, but got $output"
+    exit 1
+  fi
+}
+
 cargo build
 
 assert 0 "0;"
@@ -51,5 +68,7 @@ while (i < 10) {
 }
 return n;
 '
+
+assert_fn OK 'foo();' tests/foo.c
 
 echo OK

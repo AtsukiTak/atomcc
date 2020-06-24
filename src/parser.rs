@@ -26,8 +26,14 @@ pub enum ExprNode {
     Ident {
         offset: usize,
     },
+    Call(CallNode),
     /// 非末端Node
     Op(OpNode),
+}
+
+#[derive(Debug, Clone)]
+pub struct CallNode {
+    pub func: String,
 }
 
 #[derive(Debug, Clone)]
@@ -118,7 +124,9 @@ impl<'a> Parser<'a> {
     /// > relational    = add ("<" add | "<=" add | ">" add | ">=" add)*
     /// > add           = mul ("+" mul | "-" mul)*
     /// > unary         = ("+" | "-")? primary
-    /// > primary       = num | ident | "(" expr ")"
+    /// > primary       = num
+    ///     | ident ( "(" ")" )?
+    ///     | "(" expr ")"
     ///
     /// で表現される文法をパースする関数。
     pub fn parse(&mut self, tokens: &mut TokenStream<'a>) -> Vec<Node> {
@@ -400,7 +408,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// > primary   = num | ident | "(" expr ")"
+    /// > primary   = num | ident ( "(" ")" )? | "(" expr ")"
     ///
     /// で表現される記号primaryをパースする関数。
     pub fn parse_primary(&mut self, tokens: &mut TokenStream<'a>) -> ExprNode {
@@ -411,8 +419,27 @@ impl<'a> Parser<'a> {
         if let Some(n) = token.num() {
             ExprNode::new_num(n)
         } else if let Some(ident) = token.ident() {
-            let offset = self.offset_of_local_var(ident);
-            ExprNode::new_ident(offset)
+            match tokens.peek() {
+                // 関数呼び出しの場合
+                Some(token) if token.kind == Par::Left => {
+                    let _ = tokens.next();
+
+                    tokens
+                        .next()
+                        .unwrap_or_else(|| {
+                            tokens.exit_with_err_msg("Unexpected EOF. \")\" is expected")
+                        })
+                        .expect(Par::Right);
+
+                    ExprNode::Call(CallNode {
+                        func: ident.to_string(),
+                    })
+                }
+                _ => {
+                    let offset = self.offset_of_local_var(ident);
+                    ExprNode::new_ident(offset)
+                }
+            }
         } else {
             if !matches!(token.expect_par(), Par::Left) {
                 token.exit_with_err_msg("expect \"(\" instead of \")\"");
