@@ -184,14 +184,14 @@ impl Display for Reg16 {
             Reg16::BP => write!(f, "bp"),
             Reg16::SP => write!(f, "sp"),
             Reg16::BX => write!(f, "bx"),
-            Reg16::R8W => write!(f, "r8d"),
-            Reg16::R9W => write!(f, "r9d"),
-            Reg16::R10W => write!(f, "r10d"),
-            Reg16::R11W => write!(f, "r11d"),
-            Reg16::R12W => write!(f, "r12d"),
-            Reg16::R13W => write!(f, "r13d"),
-            Reg16::R14W => write!(f, "r14d"),
-            Reg16::R15W => write!(f, "r15d"),
+            Reg16::R8W => write!(f, "r8w"),
+            Reg16::R9W => write!(f, "r9w"),
+            Reg16::R10W => write!(f, "r10w"),
+            Reg16::R11W => write!(f, "r11w"),
+            Reg16::R12W => write!(f, "r12w"),
+            Reg16::R13W => write!(f, "r13w"),
+            Reg16::R14W => write!(f, "r14w"),
+            Reg16::R15W => write!(f, "r15w"),
         }
     }
 }
