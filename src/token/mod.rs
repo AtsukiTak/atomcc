@@ -1,3 +1,7 @@
+mod tokenizer;
+
+pub use tokenizer::{tokenize, TokenStream};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token<'a> {
     pub kind: TokenKind<'a>,
