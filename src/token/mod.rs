@@ -1,12 +1,13 @@
+mod pos;
 mod tokenizer;
 
+pub use pos::Pos;
 pub use tokenizer::{tokenize, TokenStream};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token<'a> {
     pub kind: TokenKind<'a>,
-    pub origin: &'a str,
-    pub pos: usize,
+    pub pos: Pos<'a>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -102,8 +103,8 @@ pub enum Keyword {
 }
 
 impl<'a> Token<'a> {
-    pub fn new(kind: TokenKind<'a>, origin: &'a str, pos: usize) -> Token<'a> {
-        Token { kind, origin, pos }
+    pub fn new(kind: TokenKind<'a>, pos: Pos<'a>) -> Token<'a> {
+        Token { kind, pos }
     }
 
     pub fn op(&self) -> Option<Op> {
@@ -178,9 +179,7 @@ impl<'a> Token<'a> {
     }
 
     pub fn exit_with_err_msg(&self, msg: &str) -> ! {
-        eprintln!("{}", self.origin);
-        let leading_spaces = " ".repeat(self.pos);
-        eprintln!("{}^ {}", leading_spaces, msg);
+        eprintln!("{}", self.pos.display(msg));
         std::process::exit(1)
     }
 }

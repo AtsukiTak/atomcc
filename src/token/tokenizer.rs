@@ -1,39 +1,38 @@
-use crate::token::{Brace, Keyword, Op, Par, Token, TokenKind};
+use crate::token::{Brace, Keyword, Op, Par, Pos, Token, TokenKind};
 
 #[derive(Debug, Clone, Copy)]
-pub struct TokenStream<'a> {
-    origin: &'a str,
-    s: &'a str,
-    // 現在の文字が全体の何文字目か
-    pos: usize,
+pub struct TokenStream<'origin> {
+    s: &'origin str,
+    // ソースコード上における現在の文字の位置
+    pos: Pos<'origin>,
 }
 
-pub fn tokenize<'a>(s: &'a str) -> TokenStream<'a> {
+pub fn tokenize<'origin>(origin: &'origin str) -> TokenStream<'origin> {
     TokenStream {
-        origin: s,
-        s,
-        pos: 0,
+        s: origin,
+        pos: Pos::new(origin),
     }
 }
 
-impl<'a> TokenStream<'a> {
-    pub fn peek(&self) -> Option<Token<'a>> {
+impl<'origin> TokenStream<'origin> {
+    pub fn peek(&self) -> Option<Token<'origin>> {
         let mut copied = *self;
         copied.next()
     }
 
-    fn update_s(&mut self, next_s: &'a str) {
+    fn update_s(&mut self, next_s: &'origin str) {
         self.pos += self.s.len() - next_s.len();
         self.s = next_s;
     }
 
     pub fn exit_with_err_msg(&self, msg: &'static str) -> ! {
-        exit_with_err_msg(self.origin, self.pos, msg)
+        eprintln!("{}", self.pos.display(msg));
+        std::process::exit(1)
     }
 }
 
-impl<'a> Iterator for TokenStream<'a> {
-    type Item = Token<'a>;
+impl<'origin> Iterator for TokenStream<'origin> {
+    type Item = Token<'origin>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.update_s(self.s.trim_start());
@@ -54,7 +53,7 @@ impl<'a> Iterator for TokenStream<'a> {
                 "!=" => Some(TokenKind::Op(Op::Neq)),
                 _ => None,
             } {
-                let token = Token::new(kind, self.origin, self.pos);
+                let token = Token::new(kind, self.pos);
                 self.update_s(rmn);
                 return Some(token);
             }
@@ -77,14 +76,14 @@ impl<'a> Iterator for TokenStream<'a> {
             b';' => Some(TokenKind::Keyword(Keyword::Semi)),
             _ => None,
         } {
-            let token = Token::new(kind, self.origin, self.pos);
+            let token = Token::new(kind, self.pos);
             self.update_s(rmn);
             return Some(token);
         }
 
         // 数値リテラルを調べる
         if let Some((digit, rmn)) = split_digit(s) {
-            let token = Token::new(TokenKind::Num(digit), self.origin, self.pos);
+            let token = Token::new(TokenKind::Num(digit), self.pos);
             self.update_s(rmn);
             return Some(token);
         }
@@ -98,7 +97,7 @@ impl<'a> Iterator for TokenStream<'a> {
             "while" => TokenKind::Keyword(Keyword::While),
             ident => TokenKind::Ident(ident),
         };
-        let token = Token::new(kind, self.origin, self.pos);
+        let token = Token::new(kind, self.pos);
         self.update_s(rmn);
         return Some(token);
     }
@@ -135,22 +134,12 @@ fn split_delim(s: &str) -> (&str, &str) {
     }
 }
 
-/// Print error messages such as
-/// "1 + 3 ++"
-/// "       ^ not number"
-pub fn exit_with_err_msg(origin: &str, pos: usize, msg: &str) -> ! {
-    eprintln!("{}", origin);
-    let leading_spaces = " ".repeat(pos);
-    eprintln!("{}^ {}", leading_spaces, msg);
-    std::process::exit(1)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use TokenKind as TK;
 
-    fn assert_tk<'a>(input: &'a str, expected: Vec<TokenKind<'a>>) {
+    fn assert_tk<'origin>(input: &'origin str, expected: Vec<TokenKind<'origin>>) {
         let found = tokenize(input).map(|token| token.kind).collect::<Vec<_>>();
         assert_eq!(found, expected);
     }
