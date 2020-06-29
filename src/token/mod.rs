@@ -1,4 +1,5 @@
 mod pos;
+mod token;
 mod tokenizer;
 
 pub use pos::Pos;
