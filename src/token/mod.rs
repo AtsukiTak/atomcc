@@ -1,6 +1,6 @@
-mod new_tokenizer;
+pub mod new_tokenizer;
 mod pos;
-mod token;
+pub mod token;
 mod tokenizer;
 
 pub use pos::Pos;
