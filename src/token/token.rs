@@ -80,6 +80,14 @@ macro_rules! token {
             }
         }
 
+        $(
+        impl<'src> $struct<'src> {
+            pub fn display() -> &'static str {
+                $display
+            }
+        }
+        )*
+
     };
 }
 
