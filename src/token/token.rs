@@ -28,9 +28,17 @@ macro_rules! token {
 
             pub fn display(&self) -> &'static str {
                 match self {
-                    $(
-                        Token::$variant(_) => $display,
-                    )*
+                $(
+                    Token::$variant(_) => $display,
+                )*
+                }
+            }
+
+            pub fn pos(&self) -> Pos<'src> {
+                match self {
+                $(
+                    Token::$variant(token) => token.pos,
+                )*
                 }
             }
         }
