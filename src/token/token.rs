@@ -17,13 +17,6 @@ macro_rules! token {
         )*
         }
 
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        pub enum TokenKind {
-        $(
-            $variant,
-        )*
-        }
-
         impl<'src> Token<'src> {
             pub fn kind(&self) -> TokenKind {
                 match self {
@@ -31,6 +24,20 @@ macro_rules! token {
                     Token::$variant(_) => TokenKind::$variant,
                 )*
                 }
+            }
+
+            pub fn display(&self) -> &'static str {
+                match self {
+                    $(
+                        Token::$variant(_) => $display,
+                    )*
+                }
+            }
+        }
+
+        impl<'src> std::fmt::Display for Token<'src> {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                write!(f, "{}", self.display())
             }
         }
 
@@ -42,6 +49,13 @@ macro_rules! token {
         }
         )*
 
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum TokenKind {
+        $(
+            $variant,
+        )*
+        }
+
         impl TokenKind {
             pub fn display(&self) -> &'static str {
                 match self {
@@ -51,6 +65,13 @@ macro_rules! token {
                 }
             }
         }
+
+        impl std::fmt::Display for TokenKind {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                write!(f, "{}", self.display())
+            }
+        }
+
     };
 }
 
