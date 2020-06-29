@@ -1,3 +1,4 @@
+mod new_tokenizer;
 mod pos;
 mod token;
 mod tokenizer;
