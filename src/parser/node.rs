@@ -17,6 +17,7 @@ pub enum Expr<'src> {
     Ident(ExprIdent<'src>),
     Call(ExprCall<'src>),
     BinOp(ExprBinOp<'src>),
+    Paren(ExprParen<'src>),
 }
 
 /// "hoge = 42;"
@@ -53,8 +54,8 @@ pub struct StmtIf<'src> {
     pub paren_left_token: ParenLeft<'src>,
     pub cond: Expr<'src>,
     pub paren_right_token: ParenRight<'src>,
-    pub then_branch: StmtBlock<'src>,
-    pub else_branch: Option<(Else<'src>, StmtBlock<'src>)>,
+    pub then_branch: Box<Stmt<'src>>,
+    pub else_branch: Option<(Else<'src>, Box<Stmt<'src>>)>,
 }
 
 /// "while (i < 10) { i = i + 1 }"
@@ -90,4 +91,11 @@ pub struct ExprBinOp<'src> {
     pub lhs: Box<Expr<'src>>,
     pub op: BinOp<'src>,
     pub rhs: Box<Expr<'src>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExprParen<'src> {
+    pub paren_left_token: ParenLeft<'src>,
+    pub expr: Box<Expr<'src>>,
+    pub paren_right_token: ParenRight<'src>,
 }

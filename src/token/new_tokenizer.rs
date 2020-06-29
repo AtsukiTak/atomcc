@@ -4,7 +4,7 @@ use super::{pos::Pos, token::*};
 pub struct TokenStream<'src> {
     s: &'src str,
     // ソースコード上における現在の文字の位置
-    pos: Pos<'src>,
+    pub pos: Pos<'src>,
 }
 
 pub fn tokenize<'src>(src: &'src str) -> TokenStream<'src> {
