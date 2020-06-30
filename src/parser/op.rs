@@ -11,5 +11,4 @@ pub enum BinOp<'src> {
     Lte(Lte<'src>),
     Eq(Eq<'src>),
     Neq(Neq<'src>),
-    Assign(Assign<'src>),
 }
