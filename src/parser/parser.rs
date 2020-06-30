@@ -1,5 +1,5 @@
 use super::{node::*, op::BinOp};
-use crate::token::{new_tokenizer::TokenStream, token::*, Pos};
+use crate::token::{token::*, Pos, TokenStream};
 use std::collections::HashMap;
 
 pub struct Parser<'src> {
@@ -185,11 +185,7 @@ impl<'src> Parser<'src> {
                 })
             }
             // その他の時はassignとして処理する
-            _ => {
-                let node = self.parse_assign(tokens);
-                let semi_token = parse_exact!(tokens, Semi);
-                node
-            }
+            _ => self.parse_assign(tokens),
         }
     }
 

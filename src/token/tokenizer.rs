@@ -1,26 +1,26 @@
-use crate::token::{Brace, Keyword, Op, Par, Pos, Token, TokenKind};
+use super::{pos::Pos, token::*};
 
 #[derive(Debug, Clone, Copy)]
-pub struct TokenStream<'origin> {
-    s: &'origin str,
+pub struct TokenStream<'src> {
+    s: &'src str,
     // ソースコード上における現在の文字の位置
-    pos: Pos<'origin>,
+    pub pos: Pos<'src>,
 }
 
-pub fn tokenize<'origin>(origin: &'origin str) -> TokenStream<'origin> {
+pub fn tokenize<'src>(src: &'src str) -> TokenStream<'src> {
     TokenStream {
-        s: origin,
-        pos: Pos::new(origin),
+        s: src,
+        pos: Pos::new(src),
     }
 }
 
-impl<'origin> TokenStream<'origin> {
-    pub fn peek(&self) -> Option<Token<'origin>> {
+impl<'src> TokenStream<'src> {
+    pub fn peek(&self) -> Option<Token<'src>> {
         let mut copied = *self;
         copied.next()
     }
 
-    fn update_s(&mut self, next_s: &'origin str) {
+    fn update_s(&mut self, next_s: &'src str) {
         self.pos += self.s.len() - next_s.len();
         self.s = next_s;
     }
@@ -31,8 +31,8 @@ impl<'origin> TokenStream<'origin> {
     }
 }
 
-impl<'origin> Iterator for TokenStream<'origin> {
-    type Item = Token<'origin>;
+impl<'src> Iterator for TokenStream<'src> {
+    type Item = Token<'src>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.update_s(self.s.trim_start());
@@ -45,59 +45,56 @@ impl<'origin> Iterator for TokenStream<'origin> {
 
         // 2文字の演算子を調べる
         if s.len() >= 2 {
-            let (token, rmn) = s.split_at(2);
-            if let Some(kind) = match token {
-                "<=" => Some(TokenKind::Op(Op::Lte)),
-                ">=" => Some(TokenKind::Op(Op::Gte)),
-                "==" => Some(TokenKind::Op(Op::Eq)),
-                "!=" => Some(TokenKind::Op(Op::Neq)),
+            let (token_str, rmn) = s.split_at(2);
+            if let Some(token) = match token_str {
+                "<=" => Some(Token::Lte(Lte::new(self.pos))),
+                ">=" => Some(Token::Gte(Gte::new(self.pos))),
+                "==" => Some(Token::Eq(Eq::new(self.pos))),
+                "!=" => Some(Token::Neq(Neq::new(self.pos))),
                 _ => None,
             } {
-                let token = Token::new(kind, self.pos);
                 self.update_s(rmn);
                 return Some(token);
             }
         }
 
         // 1文字のトークンを調べる
-        let (token, rmn) = s.split_at(1);
-        if let Some(kind) = match token.as_bytes()[0] {
-            b'+' => Some(TokenKind::Op(Op::Add)),
-            b'-' => Some(TokenKind::Op(Op::Sub)),
-            b'*' => Some(TokenKind::Op(Op::Mul)),
-            b'/' => Some(TokenKind::Op(Op::Div)),
-            b'<' => Some(TokenKind::Op(Op::Lt)),
-            b'>' => Some(TokenKind::Op(Op::Gt)),
-            b'=' => Some(TokenKind::Op(Op::Assign)),
-            b'(' => Some(TokenKind::Par(Par::Left)),
-            b')' => Some(TokenKind::Par(Par::Right)),
-            b'{' => Some(TokenKind::Brace(Brace::Left)),
-            b'}' => Some(TokenKind::Brace(Brace::Right)),
-            b';' => Some(TokenKind::Keyword(Keyword::Semi)),
+        let (token_str, rmn) = s.split_at(1);
+        if let Some(token) = match token_str.as_bytes()[0] {
+            b'+' => Some(Token::Add(Add::new(self.pos))),
+            b'-' => Some(Token::Sub(Sub::new(self.pos))),
+            b'*' => Some(Token::Mul(Mul::new(self.pos))),
+            b'/' => Some(Token::Div(Div::new(self.pos))),
+            b'<' => Some(Token::Lt(Lt::new(self.pos))),
+            b'>' => Some(Token::Gt(Gt::new(self.pos))),
+            b'=' => Some(Token::Assign(Assign::new(self.pos))),
+            b'(' => Some(Token::ParenLeft(ParenLeft::new(self.pos))),
+            b')' => Some(Token::ParenRight(ParenRight::new(self.pos))),
+            b'{' => Some(Token::BraceLeft(BraceLeft::new(self.pos))),
+            b'}' => Some(Token::BraceRight(BraceRight::new(self.pos))),
+            b';' => Some(Token::Semi(Semi::new(self.pos))),
             _ => None,
         } {
-            let token = Token::new(kind, self.pos);
             self.update_s(rmn);
             return Some(token);
         }
 
         // 数値リテラルを調べる
         if let Some((digit, rmn)) = split_digit(s) {
-            let token = Token::new(TokenKind::Num(digit), self.pos);
+            let token = Token::Num(Num::new(digit, self.pos));
             self.update_s(rmn);
             return Some(token);
         }
 
         // キーワード/識別子を調べる
-        let (token, rmn) = split_delim(s);
-        let kind = match token {
-            "return" => TokenKind::Keyword(Keyword::Return),
-            "if" => TokenKind::Keyword(Keyword::If),
-            "else" => TokenKind::Keyword(Keyword::Else),
-            "while" => TokenKind::Keyword(Keyword::While),
-            ident => TokenKind::Ident(ident),
+        let (token_str, rmn) = split_delim(s);
+        let token = match token_str {
+            "return" => Token::Return(Return::new(self.pos)),
+            "if" => Token::If(If::new(self.pos)),
+            "else" => Token::Else(Else::new(self.pos)),
+            "while" => Token::While(While::new(self.pos)),
+            ident => Token::Ident(Ident::new(ident, self.pos)),
         };
-        let token = Token::new(kind, self.pos);
         self.update_s(rmn);
         return Some(token);
     }
@@ -137,50 +134,36 @@ fn split_delim(s: &str) -> (&str, &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use TokenKind as TK;
+    use TokenKind as Kind;
 
-    fn assert_tk<'origin>(input: &'origin str, expected: Vec<TokenKind<'origin>>) {
-        let found = tokenize(input).map(|token| token.kind).collect::<Vec<_>>();
+    fn assert_kind<'src>(input: &'src str, expected: Vec<Kind>) {
+        let found = tokenize(input)
+            .map(|token| token.kind())
+            .collect::<Vec<_>>();
         assert_eq!(found, expected);
     }
 
     #[test]
-    fn tokenizer_tests() {
-        assert_tk("", vec![]);
-        assert_tk("   ", vec![]);
-        assert_tk("42", vec![TK::Num(42)]);
-        assert_tk("(", vec![TK::Par(Par::Left)]);
-        assert_tk("}", vec![TK::Brace(Brace::Right)]);
-        assert_tk("-42", vec![TK::Op(Op::Sub), TK::Num(42)]);
-        assert_tk("   42   ", vec![TK::Num(42)]);
-        assert_tk("42+2", vec![TK::Num(42), TK::Op(Op::Add), TK::Num(2)]);
-        assert_tk("ho_ge", vec![TK::Ident("ho_ge")]);
-        assert_tk("hoge42", vec![TK::Ident("hoge42")]);
-        assert_tk("i<3", vec![TK::Ident("i"), TK::Op(Op::Lt), TK::Num(3)]);
-        assert_tk(
-            "hoge+42",
-            vec![TK::Ident("hoge"), TK::Op(Op::Add), TK::Num(42)],
-        );
-        assert_tk(
-            "hoge=42",
-            vec![TK::Ident("hoge"), TK::Op(Op::Assign), TK::Num(42)],
-        );
-        assert_tk(
-            "if(42",
-            vec![TK::Keyword(Keyword::If), TK::Par(Par::Left), TK::Num(42)],
-        );
-        assert_tk("hoge;", vec![TK::Ident("hoge"), TK::Keyword(Keyword::Semi)]);
-        assert_tk(
+    fn token_kind_test() {
+        assert_kind("", vec![]);
+        assert_kind("   ", vec![]);
+        assert_kind("42", vec![Kind::Num]);
+        assert_kind("(", vec![Kind::ParenLeft]);
+        assert_kind("}", vec![Kind::BraceRight]);
+        assert_kind("-42", vec![Kind::Sub, Kind::Num]);
+        assert_kind("   42   ", vec![Kind::Num]);
+        assert_kind("42+2", vec![Kind::Num, Kind::Add, Kind::Num]);
+        assert_kind("ho_ge", vec![Kind::Ident]);
+        assert_kind("hoge42", vec![Kind::Ident]);
+        assert_kind("i<3", vec![Kind::Ident, Kind::Lt, Kind::Num]);
+        assert_kind("hoge+42", vec![Kind::Ident, Kind::Add, Kind::Num]);
+        assert_kind("hoge=42", vec![Kind::Ident, Kind::Assign, Kind::Num]);
+        assert_kind("if(42", vec![Kind::If, Kind::ParenLeft, Kind::Num]);
+        assert_kind("hoge;", vec![Kind::Ident, Kind::Semi]);
+        assert_kind(
             ")else hoge",
-            vec![
-                TK::Par(Par::Right),
-                TK::Keyword(Keyword::Else),
-                TK::Ident("hoge"),
-            ],
+            vec![Kind::ParenRight, Kind::Else, Kind::Ident],
         );
-        assert_tk(
-            "while (",
-            vec![TK::Keyword(Keyword::While), TK::Par(Par::Left)],
-        );
+        assert_kind("while (", vec![Kind::While, Kind::ParenLeft]);
     }
 }
