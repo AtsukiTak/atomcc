@@ -65,8 +65,6 @@ pub struct StmtWhile<'src> {
     pub paren_left_token: ParenLeft<'src>,
     pub cond: Expr<'src>,
     pub paren_right_token: ParenRight<'src>,
-    // TODO
-    // StmtBlockになるようにパーサを修正する
     pub block: Box<Stmt<'src>>,
 }
 

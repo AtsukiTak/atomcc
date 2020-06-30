@@ -1,9 +1,7 @@
-mod generator;
-
 use crate::{
     asm::{arbitrary, instructions::*, Addr, AsmBuf, Reg64::*, Reg8::*},
-    parser::*,
-    token::Op,
+    parser::{node::*, op::BinOp},
+    token::token::*,
 };
 
 pub struct Generator {
@@ -21,11 +19,11 @@ impl Generator {
         n
     }
 
-    pub fn gen(&mut self, nodes: &[Node], buf: &mut AsmBuf) {
+    pub fn gen<'a>(&mut self, stmts: &[Stmt<'a>], buf: &mut AsmBuf) {
         self.gen_prelude(buf);
         self.gen_prologue(26, buf);
-        for node in nodes {
-            self.gen_stmt(node, buf);
+        for stmt in stmts {
+            self.gen_stmt(stmt, buf);
         }
         // 最後にスタックに残っていた値をRAXレジスタに保存
         buf.push(pop(RAX));
@@ -60,21 +58,20 @@ impl Generator {
     }
 
     /// １つのstmtを処理するようなコードを生成する
-    pub fn gen_stmt(&mut self, node: &Node, buf: &mut AsmBuf) {
-        match node {
-            Node::Expr(expr) => self.gen_expr(expr, buf),
+    pub fn gen_stmt<'a>(&mut self, stmt: &Stmt<'a>, buf: &mut AsmBuf) {
+        match stmt {
+            Stmt::Expr(expr) => self.gen_expr(expr, buf),
 
             // ローカル変数にスタックトップの値を代入する
-            Node::Assign(AssignNode {
-                lhs_ident_offset,
-                rhs,
+            Stmt::Assign(StmtAssign {
+                lhs_offset, rhs, ..
             }) => {
                 self.gen_expr(rhs, buf);
                 buf.push(pop(RAX));
-                buf.push(mov(Addr(RBP) - *lhs_ident_offset as i64, RAX));
+                buf.push(mov(Addr(RBP) - *lhs_offset as i64, RAX));
             }
 
-            Node::Return(expr) => {
+            Stmt::Return(StmtReturn { expr, .. }) => {
                 // 式を評価する（ようなコードを生成する）
                 self.gen_expr(expr, buf);
 
@@ -85,9 +82,14 @@ impl Generator {
                 self.gen_epilogue(buf);
             }
 
-            Node::If(IfNode { expr, stmt }) => {
+            Stmt::If(StmtIf {
+                cond,
+                then_branch,
+                else_branch: None,
+                ..
+            }) => {
                 // 式を評価する（ようなコードを生成する）
-                self.gen_expr(expr, buf);
+                self.gen_expr(cond, buf);
 
                 // 評価結果を取り出す
                 buf.push(pop(RAX));
@@ -102,19 +104,20 @@ impl Generator {
 
                 // stmtを評価する
                 // `expr` の評価結果が0ならこのコードはスキップされる
-                self.gen_stmt(stmt, buf);
+                self.gen_stmt(then_branch, buf);
 
                 // ジャンプ先
                 buf.push(arbitrary(format!("{}:", end_label)));
             }
 
-            Node::IfElse(IfElseNode {
-                expr,
-                if_stmt,
-                else_stmt,
+            Stmt::If(StmtIf {
+                cond,
+                then_branch,
+                else_branch: Some((_, else_branch)),
+                ..
             }) => {
                 // 式を評価する（ようなコードを生成する）
-                self.gen_expr(expr, buf);
+                self.gen_expr(cond, buf);
 
                 // 評価結果を取り出す
                 buf.push(pop(RAX));
@@ -128,7 +131,7 @@ impl Generator {
                 buf.push(arbitrary(format!("  je {}", else_label)));
 
                 // 評価結果がtrueのときに実行されるstmt
-                self.gen_stmt(if_stmt, buf);
+                self.gen_stmt(then_branch, buf);
 
                 // 実行が終わったら `end_label` にjumpする
                 // つまりelseのstmtをスキップする
@@ -139,13 +142,13 @@ impl Generator {
                 buf.push(arbitrary(format!("{}:", else_label)));
 
                 // 評価結果がfalseのときに実行されるstmt
-                self.gen_stmt(else_stmt, buf);
+                self.gen_stmt(else_branch, buf);
 
                 // end_labelのジャンプ先
                 buf.push(arbitrary(format!("{}:", end_label)));
             }
 
-            Node::While(WhileNode { cond, stmt }) => {
+            Stmt::While(StmtWhile { cond, block, .. }) => {
                 // ループの戻る場所を示す
                 let label_num = self.new_label_num();
                 let begin_label = format!("L_loop_begin_{}", label_num);
@@ -163,7 +166,7 @@ impl Generator {
                 buf.push(arbitrary(format!("  je {}", end_label)));
 
                 // stmtを実行するコード
-                self.gen_stmt(stmt, buf);
+                self.gen_stmt(block, buf);
 
                 // ループの先頭に戻る
                 buf.push(arbitrary(format!("  jmp {}", begin_label)));
@@ -172,7 +175,7 @@ impl Generator {
                 buf.push(arbitrary(format!("{}:", end_label)));
             }
 
-            Node::Block(BlockNode { stmts }) => {
+            Stmt::Block(StmtBlock { stmts, .. }) => {
                 for stmt in stmts {
                     self.gen_stmt(stmt, buf);
                 }
@@ -181,39 +184,45 @@ impl Generator {
     }
 
     // スタックトップにexprの結果の値を1つ載せるようなコードを生成する
-    pub fn gen_expr(&mut self, node: &ExprNode, buf: &mut AsmBuf) {
-        match node {
+    pub fn gen_expr<'a>(&mut self, expr: &Expr<'a>, buf: &mut AsmBuf) {
+        match expr {
             // スタックトップに即値を載せる
-            ExprNode::Num(n) => buf.push(push(*n as i64)),
+            Expr::Num(n) => buf.push(push(n.num as i64)),
 
             // スタックトップに変数の値を載せる
-            ExprNode::Ident { offset } => {
-                buf.push(mov(RAX, Addr(RBP) - *offset as i64));
+            Expr::Ident(ExprIdent { ident_offset, .. }) => {
+                buf.push(mov(RAX, Addr(RBP) - *ident_offset as i64));
                 buf.push(push(RAX));
             }
 
             // 関数を呼び出す
-            ExprNode::Call(CallNode { func }) => {
-                buf.push(arbitrary(format!("  call _{}", func)));
+            Expr::Call(ExprCall { ident: func, .. }) => {
+                buf.push(arbitrary(format!("  call _{}", func.name)));
             }
 
+            Expr::Paren(ExprParen { expr, .. }) => self.gen_expr(expr, buf),
+
             // スタックトップに計算結果を載せる
-            ExprNode::Op(OpNode { kind, lhs, rhs }) => {
-                self.gen_expr(lhs, buf); // スタックトップに1つ値が残る（ようなコードを生成する）
-                self.gen_expr(rhs, buf); // スタックトップに1つ値が残る（ようなコードを生成する）
+            Expr::BinOp(ExprBinOp { lhs, op, rhs }) => {
+                // スタックトップに1つ値が残る（ようなコードを生成する）
+                self.gen_expr(lhs, buf);
+                // スタックトップに1つ値が残る（ようなコードを生成する）
+                self.gen_expr(rhs, buf);
 
-                buf.push(pop(RDI)); // 左ブランチの計算結果をrdiレジスタに記録
-                buf.push(pop(RAX)); // 右ブランチの計算結果をraxレジスタに記録
+                // 左ブランチの計算結果をrdiレジスタに記録
+                buf.push(pop(RDI));
+                // 右ブランチの計算結果をraxレジスタに記録
+                buf.push(pop(RAX));
 
-                match kind {
-                    Op::Add => buf.push(add(RAX, RDI)),
-                    Op::Sub => buf.push(sub(RAX, RDI)),
-                    Op::Mul => buf.push(imul(RAX, RDI)),
-                    Op::Div => {
+                match op {
+                    BinOp::Add(_) => buf.push(add(RAX, RDI)),
+                    BinOp::Sub(_) => buf.push(sub(RAX, RDI)),
+                    BinOp::Mul(_) => buf.push(imul(RAX, RDI)),
+                    BinOp::Div(_) => {
                         buf.push(cqo());
                         buf.push(idiv(RDI));
                     }
-                    Op::Eq => {
+                    BinOp::Eq(_) => {
                         // RAXとRDIが等しければZFを立てる
                         buf.push(cmp(RAX, RDI));
                         // ZFが立っていればALに1をセットする
@@ -221,7 +230,7 @@ impl Generator {
                         // ALの値をゼロ拡張してRAXにコピーする
                         buf.push(movzx(RAX, AL));
                     }
-                    Op::Neq => {
+                    BinOp::Neq(_) => {
                         // RAXとRDIが等しければZFを立てる
                         buf.push(cmp(RAX, RDI));
                         // ZFが立っていなければALに1をセットする
@@ -229,7 +238,7 @@ impl Generator {
                         // ALの値をゼロ拡張してRAXにコピーする
                         buf.push(movzx(RAX, AL));
                     }
-                    Op::Lt => {
+                    BinOp::Lt(_) => {
                         // RAX - RDIの結果をステータスフラグにセットする
                         buf.push(cmp(RAX, RDI));
                         // SF <> OF のときにALに1をセットする
@@ -237,14 +246,13 @@ impl Generator {
                         // ALの値をゼロ拡張してRAXにコピーする
                         buf.push(movzx(RAX, AL));
                     }
-                    Op::Lte => {
+                    BinOp::Lte(_) => {
                         // RAXとRDIが等しければZFを立てる
                         buf.push(cmp(RAX, RDI));
                         buf.push(setle(AL));
                         // ALの値をゼロ拡張してRAXにコピーする
                         buf.push(movzx(RAX, AL));
                     }
-                    _ => unreachable!(),
                 }
 
                 buf.push(push(RAX));

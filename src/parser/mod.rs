@@ -1,6 +1,6 @@
-mod node;
-mod op;
-mod parser;
+pub mod node;
+pub mod op;
+pub mod parser;
 
 use crate::token::{Brace, Keyword, Op, Par, Token, TokenKind, TokenStream};
 use std::collections::HashMap;
