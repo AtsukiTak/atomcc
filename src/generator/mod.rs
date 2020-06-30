@@ -1,4 +1,4 @@
-mod generator;
+pub mod generator;
 
 use crate::{
     asm::{arbitrary, instructions::*, Addr, AsmBuf, Reg64::*, Reg8::*},

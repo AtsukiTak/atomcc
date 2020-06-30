@@ -1,4 +1,4 @@
-use atomcc::{asm::AsmBuf, generator, parser, token::tokenize};
+use atomcc::{asm::AsmBuf, generator::generator, parser::parser, token::new_tokenizer::tokenize};
 
 fn main() {
     let arg = std::env::args().nth(1).unwrap();
