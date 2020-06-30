@@ -219,7 +219,11 @@ impl<'src> Parser<'src> {
 
             // (ident "=") で始まらなかった場合のルート.
             // tokensは進んでいないことに注意。
-            _ => Stmt::Expr(self.parse_expr(tokens)),
+            _ => {
+                let expr = self.parse_expr(tokens);
+                let _semi = parse_exact!(tokens, Semi);
+                Stmt::Expr(expr)
+            }
         }
     }
 
