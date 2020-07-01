@@ -113,7 +113,7 @@ pub enum Token<'src> {
     /// "=="
     Eq(Eq<'src>) as "==",
     /// "!="
-    Neq(Neq<'src>) as "Neq",
+    Neq(Neq<'src>) as "!=",
     /// "="
     Assign(Assign<'src>) as "=",
 
@@ -142,6 +142,8 @@ pub enum Token<'src> {
     While(While<'src>) as "while",
     /// ";"
     Semi(Semi<'src>) as ";",
+    /// ","
+    Comma(Comma<'src>) as ",",
 }
 }
 
@@ -169,7 +171,7 @@ macro_rules! plain_token {
 
 plain_token!(Add, Sub, Mul, Div, Lt, Lte, Gt, Gte, Eq, Neq, Assign);
 plain_token!(ParenLeft, ParenRight, BraceLeft, BraceRight);
-plain_token!(Return, If, Else, While, Semi);
+plain_token!(Return, If, Else, While, Semi, Comma);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Num<'src> {

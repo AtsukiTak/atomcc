@@ -56,7 +56,7 @@ impl<'src> Parser<'src> {
     /// > mul           = unary ("*" unary | "/" unary)*
     /// > unary         = ("+" | "-")? primary
     /// > primary       = num
-    ///     | ident ( "(" ")" )?
+    ///     | ident ( "(" ( num ( "," num )* )?  ")" )?
     ///     | "(" expr ")"
     ///
     /// で表現される文法をパースする関数。
@@ -380,7 +380,9 @@ impl<'src> Parser<'src> {
         }
     }
 
-    /// > primary   = num | ident ( "(" ")" )? | "(" expr ")"
+    /// > primary   = num
+    ///     | ident ( "(" call_params? ")" )?
+    ///     | "(" expr ")"
     ///
     /// で表現される記号primaryをパースする関数。
     pub fn parse_primary(&mut self, tokens: &mut TokenStream<'src>) -> Expr<'src> {
@@ -392,11 +394,26 @@ impl<'src> Parser<'src> {
                     Some(Token::ParenLeft(paren_left_token)) => {
                         let _ = tokens.next();
 
-                        let paren_right_token = parse_exact!(tokens, ParenRight);
+                        let (paren_right_token, params) = match tokens.peek() {
+                            Some(Token::ParenRight(token)) => {
+                                let _ = tokens.next();
+                                (token, Vec::new())
+                            }
+                            Some(_) => {
+                                let params = self.parse_call_params(tokens);
+                                let paren_right_token = parse_exact!(tokens, ParenRight);
+                                (paren_right_token, params)
+                            }
+                            None => exit_with_err_msg(
+                                tokens.pos,
+                                "expected params or \")\" but found EOF",
+                            ),
+                        };
 
                         Expr::Call(ExprCall {
                             ident,
                             paren_left_token,
+                            params,
                             paren_right_token,
                         })
                     }
@@ -422,6 +439,24 @@ impl<'src> Parser<'src> {
             Some(token) => exit_with_err_msg(token.pos(), "expected number, ident or \"(\""),
             None => exit_with_err_msg(tokens.pos, "expected number, ident or \"(\""),
         }
+    }
+
+    // > call_params = expr ( "," expr )*
+    fn parse_call_params(&mut self, tokens: &mut TokenStream<'src>) -> Vec<Expr<'src>> {
+        let mut params = Vec::new();
+        params.push(self.parse_expr(tokens));
+
+        loop {
+            match tokens.peek() {
+                Some(Token::Comma(_)) => {
+                    let _ = tokens.next();
+                    params.push(self.parse_expr(tokens));
+                }
+                _ => break,
+            }
+        }
+
+        params
     }
 }
 
