@@ -195,7 +195,38 @@ impl Generator {
             }
 
             // 関数を呼び出す
-            Expr::Call(ExprCall { ident: func, .. }) => {
+            Expr::Call(ExprCall {
+                ident: func,
+                params,
+                ..
+            }) => {
+                if params.len() > 6 {
+                    eprintln!("6個より多い引数には対応していません");
+                    std::process::exit(1);
+                }
+
+                // 引数を評価する
+                for param in params.iter() {
+                    self.gen_expr(param, buf);
+                }
+
+                // 引数をレジスタに載せる
+                // スタックには逆順で評価結果が乗っている
+                for (i, _param) in params.iter().enumerate().rev() {
+                    let reg = match i {
+                        0 => RDI,
+                        1 => RSI,
+                        2 => RDX,
+                        3 => RCX,
+                        4 => R8,
+                        5 => R9,
+                        _ => unreachable!(),
+                    };
+
+                    buf.push(pop(reg));
+                }
+
+                // 関数の呼び出し
                 buf.push(arbitrary(format!("  call _{}", func.name)));
             }
 
