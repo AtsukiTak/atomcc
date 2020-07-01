@@ -73,6 +73,7 @@ impl<'src> Iterator for TokenStream<'src> {
             b'{' => Some(Token::BraceLeft(BraceLeft::new(self.pos))),
             b'}' => Some(Token::BraceRight(BraceRight::new(self.pos))),
             b';' => Some(Token::Semi(Semi::new(self.pos))),
+            b',' => Some(Token::Comma(Comma::new(self.pos))),
             _ => None,
         } {
             self.update_s(rmn);
@@ -119,7 +120,7 @@ fn split_delim(s: &str) -> (&str, &str) {
     assert!(s.len() != 0);
 
     let delimiters = [
-        ' ', '{', '}', '(', ')', '=', ';', '+', '-', '*', '/', '<', '>',
+        ' ', '{', '}', '(', ')', '=', ';', ',', '+', '-', '*', '/', '<', '>',
     ];
 
     let idx = s.find(&delimiters[..]).unwrap_or(s.len());
