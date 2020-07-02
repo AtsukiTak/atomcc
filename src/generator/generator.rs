@@ -4,24 +4,16 @@ use crate::{
     parser::ast::*,
 };
 
-pub struct Generator {
-    next_label_num: usize,
-}
+pub struct Generator();
 
 impl Generator {
     pub fn new() -> Self {
-        Generator { next_label_num: 0 }
-    }
-
-    pub fn new_label_num(&mut self) -> usize {
-        let n = self.next_label_num;
-        self.next_label_num += 1;
-        n
+        Generator()
     }
 
     pub fn gen<'a>(&mut self, stmts: &[Stmt<'a>], buf: &mut AsmBuf) {
         self.gen_prelude(buf);
-        SubroutineGen::new(self).gen_subroutine(stmts, buf);
+        SubroutineGen::new().gen_subroutine(stmts, buf);
     }
 
     pub fn gen_prelude(&self, buf: &mut AsmBuf) {

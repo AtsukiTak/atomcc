@@ -1,23 +1,19 @@
-use super::Generator;
+use super::get_unique_num;
 use crate::{
     asm::{arbitrary, instructions::*, Addr, AsmBuf, Reg64::*, Reg8::*},
     parser::ast::*,
 };
 
 /// サブルーチンのコードを生成するジェネレータ
-pub struct SubroutineGen<'root> {
-    root_gen: &'root mut Generator,
+pub struct SubroutineGen {
     /// `call` によって積まれるreturn addressも **含めた** スタックの長さ.
     /// 16 byte alignするときに使う。
     stack_len: usize,
 }
 
-impl<'root> SubroutineGen<'root> {
-    pub fn new(root_gen: &'root mut Generator) -> Self {
-        SubroutineGen {
-            root_gen,
-            stack_len: 0,
-        }
+impl SubroutineGen {
+    pub fn new() -> Self {
+        SubroutineGen { stack_len: 0 }
     }
 
     pub fn inc_stack_len(&mut self) {
@@ -125,7 +121,7 @@ impl<'root> SubroutineGen<'root> {
 
                 // 等しければ一連のコードの終わりにjumpする
                 // つまり、以下の処理をスキップする
-                let end_label = format!("L_if_end_{}", self.root_gen.new_label_num());
+                let end_label = format!("L_if_end_{}", get_unique_num());
                 *buf += arbitrary(format!("  je {}", end_label));
 
                 // stmtを評価する
@@ -153,7 +149,7 @@ impl<'root> SubroutineGen<'root> {
                 *buf += cmp(RAX, 0);
 
                 // 等しければ `else_label` にjumpする
-                let label_num = self.root_gen.new_label_num();
+                let label_num = get_unique_num();
                 let else_label = format!("L_if_else_{}", label_num);
                 *buf += arbitrary(format!("  je {}", else_label));
 
@@ -177,7 +173,7 @@ impl<'root> SubroutineGen<'root> {
 
             Stmt::While(StmtWhile { cond, block, .. }) => {
                 // ループの戻る場所を示す
-                let label_num = self.root_gen.new_label_num();
+                let label_num = get_unique_num();
                 let begin_label = format!("L_loop_begin_{}", label_num);
                 *buf += arbitrary(format!("{}:", begin_label));
 
