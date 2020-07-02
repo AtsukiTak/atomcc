@@ -70,6 +70,6 @@ return n;
 '
 
 assert_fn OK 'foo();' tests/foo.c
-assert_fn 42 'foo2(10, 32);' tests/foo.c
+assert_fn 42 '42; foo2(10, 32);' tests/foo.c
 
 echo OK
