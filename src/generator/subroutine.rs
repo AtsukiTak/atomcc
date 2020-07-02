@@ -38,7 +38,7 @@ impl<'root> SubroutineGen<'root> {
         // 最後にスタックに残っていた値をRAXレジスタにpopする。
         // C言語のABIでは返り値はRAXレジスタに入れる。
         // もうstack_lenの値は使わないのでdec_stack_lenしない
-        buf.push(pop(RAX));
+        *buf += pop(RAX);
 
         self.gen_epilogue(buf);
     }
@@ -50,14 +50,14 @@ impl<'root> SubroutineGen<'root> {
         self.inc_stack_len();
 
         // ベースポインタの値を避難
-        buf.push(push(RBP));
+        *buf += push(RBP);
         self.inc_stack_len();
 
         // ベースポインタを、スタックポインタまで移動
-        buf.push(mov(RBP, RSP));
+        *buf += mov(RBP, RSP);
 
         // stack領域の確保 (スタックポインタの移動)
-        buf.push(sub(RSP, 8 * stack_bytes));
+        *buf += sub(RSP, 8 * stack_bytes);
     }
 
     /// エピローグコードを生成
@@ -68,14 +68,14 @@ impl<'root> SubroutineGen<'root> {
     pub fn gen_epilogue(&mut self, buf: &mut AsmBuf) {
         // スタックポインタをベースポインタまで移動
         // ローカルスタック領域の開放
-        buf.push(mov(RSP, RBP));
+        *buf += mov(RSP, RBP);
 
         // prologueで避難させておいたベースポインタの値を戻す
         // もうstack_lenの値は使わないので、dec_stack_lenしない
-        buf.push(pop(RBP));
+        *buf += pop(RBP);
 
         // stackからreturn addressをpopし、そこにjumpする
-        buf.push(ret());
+        *buf += ret();
     }
 
     /// １つのstmtを処理するようなコードを生成する
@@ -89,10 +89,10 @@ impl<'root> SubroutineGen<'root> {
             }) => {
                 self.gen_expr(rhs, buf);
 
-                buf.push(pop(RAX));
+                *buf += pop(RAX);
                 self.dec_stack_len();
 
-                buf.push(mov(Addr(RBP) - *lhs_offset as i64, RAX));
+                *buf += mov(Addr(RBP) - *lhs_offset as i64, RAX);
             }
 
             Stmt::Return(StmtReturn { expr, .. }) => {
@@ -100,7 +100,7 @@ impl<'root> SubroutineGen<'root> {
                 self.gen_expr(expr, buf);
 
                 // 評価結果を取り出す
-                buf.push(pop(RAX));
+                *buf += pop(RAX);
                 self.dec_stack_len();
 
                 // エピローグ
@@ -117,23 +117,23 @@ impl<'root> SubroutineGen<'root> {
                 self.gen_expr(cond, buf);
 
                 // 評価結果を取り出す
-                buf.push(pop(RAX));
+                *buf += pop(RAX);
                 self.dec_stack_len();
 
                 // 取り出した値が0と等しいかどうか
-                buf.push(cmp(RAX, 0));
+                *buf += cmp(RAX, 0);
 
                 // 等しければ一連のコードの終わりにjumpする
                 // つまり、以下の処理をスキップする
                 let end_label = format!("L_if_end_{}", self.root_gen.new_label_num());
-                buf.push(arbitrary(format!("  je {}", end_label)));
+                *buf += arbitrary(format!("  je {}", end_label));
 
                 // stmtを評価する
                 // `expr` の評価結果が0ならこのコードはスキップされる
                 self.gen_stmt(then_branch, buf);
 
                 // ジャンプ先
-                buf.push(arbitrary(format!("{}:", end_label)));
+                *buf += arbitrary(format!("{}:", end_label));
             }
 
             Stmt::If(StmtIf {
@@ -146,16 +146,16 @@ impl<'root> SubroutineGen<'root> {
                 self.gen_expr(cond, buf);
 
                 // 評価結果を取り出す
-                buf.push(pop(RAX));
+                *buf += pop(RAX);
                 self.dec_stack_len();
 
                 // 評価結果が0と等しいかどうか
-                buf.push(cmp(RAX, 0));
+                *buf += cmp(RAX, 0);
 
                 // 等しければ `else_label` にjumpする
                 let label_num = self.root_gen.new_label_num();
                 let else_label = format!("L_if_else_{}", label_num);
-                buf.push(arbitrary(format!("  je {}", else_label)));
+                *buf += arbitrary(format!("  je {}", else_label));
 
                 // 評価結果がtrueのときに実行されるstmt
                 self.gen_stmt(then_branch, buf);
@@ -163,44 +163,44 @@ impl<'root> SubroutineGen<'root> {
                 // 実行が終わったら `end_label` にjumpする
                 // つまりelseのstmtをスキップする
                 let end_label = format!("L_if_end_{}", label_num);
-                buf.push(arbitrary(format!("  jmp {}", end_label)));
+                *buf += arbitrary(format!("  jmp {}", end_label));
 
                 // else_labelのジャンプ先
-                buf.push(arbitrary(format!("{}:", else_label)));
+                *buf += arbitrary(format!("{}:", else_label));
 
                 // 評価結果がfalseのときに実行されるstmt
                 self.gen_stmt(else_branch, buf);
 
                 // end_labelのジャンプ先
-                buf.push(arbitrary(format!("{}:", end_label)));
+                *buf += arbitrary(format!("{}:", end_label));
             }
 
             Stmt::While(StmtWhile { cond, block, .. }) => {
                 // ループの戻る場所を示す
                 let label_num = self.root_gen.new_label_num();
                 let begin_label = format!("L_loop_begin_{}", label_num);
-                buf.push(arbitrary(format!("{}:", begin_label)));
+                *buf += arbitrary(format!("{}:", begin_label));
 
                 // ループ判定の式を評価するコード
                 self.gen_expr(cond, buf);
 
                 // ループ判定の結果を取り出す
-                buf.push(pop(RAX));
+                *buf += pop(RAX);
                 self.dec_stack_len();
 
                 // 判定の結果が0と等しければend_labelにジャンプ
-                buf.push(cmp(RAX, 0));
+                *buf += cmp(RAX, 0);
                 let end_label = format!("L_loop_end_{}", label_num);
-                buf.push(arbitrary(format!("  je {}", end_label)));
+                *buf += arbitrary(format!("  je {}", end_label));
 
                 // stmtを実行するコード
                 self.gen_stmt(block, buf);
 
                 // ループの先頭に戻る
-                buf.push(arbitrary(format!("  jmp {}", begin_label)));
+                *buf += arbitrary(format!("  jmp {}", begin_label));
 
                 // ループを抜け出した場所
-                buf.push(arbitrary(format!("{}:", end_label)));
+                *buf += arbitrary(format!("{}:", end_label));
             }
 
             Stmt::Block(StmtBlock { stmts, .. }) => {
@@ -216,14 +216,14 @@ impl<'root> SubroutineGen<'root> {
         match expr {
             // スタックトップに即値を載せる
             Expr::Num(n) => {
-                buf.push(push(n.num as i64));
+                *buf += push(n.num as i64);
                 self.inc_stack_len();
             }
 
             // スタックトップに変数の値を載せる
             Expr::Ident(ExprIdent { ident_offset, .. }) => {
-                buf.push(mov(RAX, Addr(RBP) - *ident_offset as i64));
-                buf.push(push(RAX));
+                *buf += mov(RAX, Addr(RBP) - *ident_offset as i64);
+                *buf += push(RAX);
                 self.inc_stack_len();
             }
 
@@ -256,17 +256,17 @@ impl<'root> SubroutineGen<'root> {
                         _ => unreachable!(),
                     };
 
-                    buf.push(pop(reg));
+                    *buf += pop(reg);
                     self.dec_stack_len();
                 }
 
                 // RSP を16 byte にalignする
                 if self.stack_len % 16 != 0 {
-                    buf.push(sub(RSP, 8));
+                    *buf += sub(RSP, 8);
                 }
 
                 // 関数の呼び出し
-                buf.push(arbitrary(format!("  call _{}", func.name)));
+                *buf += arbitrary(format!("  call _{}", func.name));
             }
 
             Expr::Paren(ExprParen { expr, .. }) => self.gen_expr(expr, buf),
@@ -279,54 +279,54 @@ impl<'root> SubroutineGen<'root> {
                 self.gen_expr(rhs, buf);
 
                 // 左ブランチの計算結果をrdiレジスタに記録
-                buf.push(pop(RDI));
+                *buf += pop(RDI);
                 self.dec_stack_len();
                 // 右ブランチの計算結果をraxレジスタに記録
-                buf.push(pop(RAX));
+                *buf += pop(RAX);
                 self.dec_stack_len();
 
                 match op {
-                    BinOp::Add(_) => buf.push(add(RAX, RDI)),
-                    BinOp::Sub(_) => buf.push(sub(RAX, RDI)),
-                    BinOp::Mul(_) => buf.push(imul(RAX, RDI)),
+                    BinOp::Add(_) => *buf += add(RAX, RDI),
+                    BinOp::Sub(_) => *buf += sub(RAX, RDI),
+                    BinOp::Mul(_) => *buf += imul(RAX, RDI),
                     BinOp::Div(_) => {
-                        buf.push(cqo());
-                        buf.push(idiv(RDI));
+                        *buf += cqo();
+                        *buf += idiv(RDI);
                     }
                     BinOp::Eq(_) => {
                         // RAXとRDIが等しければZFを立てる
-                        buf.push(cmp(RAX, RDI));
+                        *buf += cmp(RAX, RDI);
                         // ZFが立っていればALに1をセットする
-                        buf.push(sete(AL));
+                        *buf += sete(AL);
                         // ALの値をゼロ拡張してRAXにコピーする
-                        buf.push(movzx(RAX, AL));
+                        *buf += movzx(RAX, AL);
                     }
                     BinOp::Neq(_) => {
                         // RAXとRDIが等しければZFを立てる
-                        buf.push(cmp(RAX, RDI));
+                        *buf += cmp(RAX, RDI);
                         // ZFが立っていなければALに1をセットする
-                        buf.push(setne(AL));
+                        *buf += setne(AL);
                         // ALの値をゼロ拡張してRAXにコピーする
-                        buf.push(movzx(RAX, AL));
+                        *buf += movzx(RAX, AL);
                     }
                     BinOp::Lt(_) => {
                         // RAX - RDIの結果をステータスフラグにセットする
-                        buf.push(cmp(RAX, RDI));
+                        *buf += cmp(RAX, RDI);
                         // SF <> OF のときにALに1をセットする
-                        buf.push(setl(AL));
+                        *buf += setl(AL);
                         // ALの値をゼロ拡張してRAXにコピーする
-                        buf.push(movzx(RAX, AL));
+                        *buf += movzx(RAX, AL);
                     }
                     BinOp::Lte(_) => {
                         // RAXとRDIが等しければZFを立てる
-                        buf.push(cmp(RAX, RDI));
-                        buf.push(setle(AL));
+                        *buf += cmp(RAX, RDI);
+                        *buf += setle(AL);
                         // ALの値をゼロ拡張してRAXにコピーする
-                        buf.push(movzx(RAX, AL));
+                        *buf += movzx(RAX, AL);
                     }
                 }
 
-                buf.push(push(RAX));
+                *buf += push(RAX);
                 self.inc_stack_len();
             }
         }

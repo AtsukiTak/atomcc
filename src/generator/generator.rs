@@ -25,8 +25,8 @@ impl Generator {
     }
 
     pub fn gen_prelude(&self, buf: &mut AsmBuf) {
-        buf.push(arbitrary(".intel_syntax noprefix"));
-        buf.push(arbitrary(".global _main"));
-        buf.push(arbitrary("_main:"));
+        *buf += arbitrary(".intel_syntax noprefix");
+        *buf += arbitrary(".global _main");
+        *buf += arbitrary("_main:");
     }
 }

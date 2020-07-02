@@ -15,10 +15,6 @@ impl AsmBuf {
         AsmBuf { vec: Vec::new() }
     }
 
-    pub fn push(&mut self, asm: impl Asm + 'static) {
-        self.vec.push(Box::new(asm))
-    }
-
     pub fn append(&mut self, others: &mut AsmBuf) {
         self.vec.append(&mut others.vec)
     }
@@ -45,6 +41,15 @@ impl AsmBuf {
 }
 
 impl<T> AddAssign<T> for AsmBuf
+where
+    T: Asm + 'static,
+{
+    fn add_assign(&mut self, asm: T) {
+        self.vec.push(Box::new(asm))
+    }
+}
+
+impl<T> AddAssign<T> for &mut AsmBuf
 where
     T: Asm + 'static,
 {
